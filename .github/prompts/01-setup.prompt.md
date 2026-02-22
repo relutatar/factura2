@@ -466,14 +466,14 @@ docker compose exec app php artisan migrate --seed
 ---
 
 ## Acceptance Criteria
-- [ ] `docker compose up -d` starts all 5 services (app, nginx, mysql, queue, scheduler) with no errors.
-- [ ] `docker compose exec app php artisan migrate --seed` completes without errors.
-- [ ] Two companies exist in `companies` table: NOD CONSULTING SRL (CUI 27864858) and PAINTBALL MUREȘ SRL (CUI 36408451).
-- [ ] `http://localhost/admin` shows the Filament login page.
-- [ ] After login, the Company Switcher dropdown is visible in the top bar.
-- [ ] Switching companies updates `session('active_company_id')`.
-- [ ] `make fresh` (migrate:fresh --seed) works from the host.
-- [ ] All user-visible text is in **Romanian**.
+- [x] `docker compose up -d` starts all 5 services (app, nginx, mysql, queue, scheduler) with no errors.
+- [x] `docker compose exec app php artisan migrate --seed` completes without errors.
+- [x] Two companies exist in `companies` table: NOD CONSULTING SRL (CUI 27864858) and PAINTBALL MUREȘ SRL (CUI 36408451).
+- [x] `http://localhost:8080/admin` shows the Filament login page. *(port remapped to 8080 – host port 80 occupied by Apache2)*
+- [x] After login, the Company Switcher dropdown is visible in the top bar.
+- [x] Switching companies updates `session('active_company_id')`.
+- [x] `make fresh` (migrate:fresh --seed) works from the host.
+- [x] All user-visible text is in **Romanian**.
 
 ---
 
@@ -481,4 +481,4 @@ docker compose exec app php artisan migrate --seed
 
 | Date | Implemented | Pending | Blockers / Notes |
 |---|---|---|---|
-| — | — | Everything | Not started |
+| 2026-02-23 | Full setup: Dockerfile, docker-compose.yml, nginx config, Makefile, Laravel 11 bootstrap, Filament 3 install, Company model/migration/seeder, CompanyScope, SetActiveCompany middleware, CompanySwitcher Livewire component, UserSeeder (admin@factura2.ro / password). `make fresh` fully self-contained. | — | Host port 80 taken by Apache2 → nginx remapped to 8080. MySQL on 3307 (3306 in use). Storage permissions fixed with `chmod 777`. |
