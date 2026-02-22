@@ -1,0 +1,101 @@
+PLAN COMPLET DE IMPLEMENTARE – FACTURA2
+Pentru GitHub Copilot (VSCode) – 100% ready to copy-paste
+Nume proiect: FACTURA2 (folder: factura2)
+Data: 22 februarie 2026
+Scop: Aplicație internă pentru NOD CONSULTING (DDD) + PAINTBALL MUREȘ
+
+
+PLAN COMPLET DE IMPLEMENTARE – FACTURA2
+Pentru GitHub Copilot (VSCode) – 100% ready to copy-paste
+Nume proiect: FACTURA2 (folder: factura2)
+Data: 22 februarie 2026
+Scop: Aplicație internă pentru NOD CONSULTING (DDD) + PAINTBALL MUREȘ
+
+1. INSTRUCȚIUNI GENERALE PENTRU COPILOT
+Când dai un prompt lui Copilot, folosește mereu:
+„În proiectul FACTURA2, implementează exact următoarele: [lipeste cerința]”
+Folosește Laravel 11/12 + FilamentPHP 3.
+
+2. PAS 0 – CREAREA PROIECTULUI (rulează o singură dată)
+Bashcomposer create-project laravel/laravel factura2 "11.*" --prefer-dist
+cd factura2
+php artisan key:generate
+Primul prompt pentru Copilot (dă-l acum):
+textÎn proiectul FACTURA2, instalează și configurează:
+- filament/filament:^3.2
+- spatie/laravel-permission
+- spatie/laravel-pdf
+- barryvdh/laravel-dompdf (fallback)
+- redis (pentru queue)
+- pristavu/laravel-anaf (sau ultimul pachet e-Factura 2026)
+
+Creează un Filament panel numit "admin" cu login standard.
+Adaugă middleware pentru CompanyScope.
+
+3. STRUCTURA FOLDERELOR (copiază și creează manual sau spune-i lui Copilot)
+textfactura2/
+├── app/
+│   ├── Models/
+│   │   ├── Company.php
+│   │   ├── Client.php
+│   │   ├── Contact.php
+│   │   ├── Contract.php
+│   │   ├── Product.php
+│   │   ├── StockMovement.php
+│   │   ├── Invoice.php
+│   │   ├── InvoiceLine.php
+│   │   └── Scopes/CompanyScope.php
+│   ├── Filament/
+│   │   ├── Resources/
+│   │   │   ├── ClientResource.php
+│   │   │   ├── ContractResource.php
+│   │   │   ├── ProductResource.php
+│   │   │   ├── StockMovementResource.php
+│   │   │   └── InvoiceResource.php
+│   │   └── Pages/Dashboard.php
+├── database/
+│   ├── migrations/
+│   └── seeders/CompanySeeder.php
+├── config/filament.php
+├── routes/web.php
+
+4. ORDINEA EXACTĂ DE IMPLEMENTARE (PAS CU PAS)
+PAS 1 – Setup de bază + 2 firme (30-45 minute)
+Prompt Copilot:
+textÎn proiectul FACTURA2 creează:
+1. Migration + Model + Seeder pentru Company (id, name, cif, reg_com, address, iban, bank, logo, efactura_settings json)
+2. Seeder cu exact 2 companii:
+   - NOD CONSULTING
+   - PAINTBALL MUREȘ
+3. CompanyScope (global scope pe company_id)
+4. Company Switcher în Filament header (Livewire component)
+5. Middleware care setează company_id din sesiune
+PAS 2 – Clienți + Contacte (1 zi)
+Prompt:
+textÎn proiectul FACTURA2 creează modelele Client și Contact cu toate câmpurile necesare, relațiile, Filament Resources complete + auto-complete ANAF pe CIF.
+PAS 3 – Contracte (1,5 zile)
+Prompt:
+textÎn proiectul FACTURA2 creează modelul Contract cu enum type (mentenanta_ddd, eveniment_paintball), câmpuri specifice pentru fiecare firmă, template PDF, relație cu Client și Invoice, plus buton "Generează factură din contract".
+PAS 4 – Produse & Stocuri (1,5 zile)
+Prompt:
+textÎn proiectul FACTURA2 creează Product + StockMovement, cu deductie automată la facturare și alerte stoc minim. Adaptează pentru NOD (substanțe DDD) și Paintball (bile + echipament).
+PAS 5 – Facturare (2 zile)
+Prompt:
+textÎn proiectul FACTURA2 creează Invoice + InvoiceLine cu repeater în Filament, serii numerice per firmă, PDF cu logo din company, tipuri (factura, proforma, chitanta, aviz).
+PAS 6 – e-Factura (2 zile – critic)
+Prompt:
+textÎn proiectul FACTURA2 integrează pristavu/laravel-anaf:
+- upload certificat .pfx per Company
+- buton "Trimite la e-Factura" în InvoiceResource
+- Job de polling la fiecare 10 minute
+- afișare status colorat + mesaje românești
+PAS 7 – Dashboard + Polish (1 zi)
+Prompt:
+textÎn proiectul FACTURA2 creează Dashboard cu widget-uri: facturi neplătite, contracte care expiră, stocuri sub minim (separate pe firmă).
+
+5. PROMPTURI RAPIDE READY-TO-COPY (folosește-le direct)
+Exemplu prompt complet pentru un Resource:
+textÎn proiectul FACTURA2 creează Filament Resource complet pentru Contract:
+- Form cu tabs (General, DDD specific, Paintball specific)
+- Table cu filtre per firmă
+- Acțiuni: View, Edit, Delete, "Generează factură"
