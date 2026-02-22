@@ -55,6 +55,189 @@ The application **must run in Docker** during development. Never assume a local 
 
 ---
 
+## Key Code Patterns
+
+These are the exact patterns to use throughout the project. Always follow these, never invent alternatives.
+
+### CompanyScope – how to define it
+```php
+// app/Models/Scopes/CompanyScope.php
+namespace App\Models\Scopes;
+
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Scope;
+
+class CompanyScope implements Scope
+{
+    public function apply(Builder $builder, Model $model): void
+    {
+        $companyId = session('active_company_id');
+        if ($companyId) {
+            $builder->where('company_id', $companyId);
+        }
+    }
+}
+```
+
+### How to register CompanyScope on every scoped model
+```php
+// Inside any model that belongs to a company:
+protected static function booted(): void
+{
+    static::addGlobalScope(new \App\Models\Scopes\CompanyScope());
+
+    static::creating(function (self $model) {
+        if (empty($model->company_id)) {
+            $model->company_id = session('active_company_id');
+        }
+    });
+}
+```
+
+### Filament Resource – Romanian navigation label pattern
+```php
+protected static ?string $navigationGroup = 'Clienți';   // Romanian group
+protected static ?string $navigationLabel = 'Clienți';   // Romanian nav item
+protected static ?string $modelLabel = 'Client';          // Romanian singular
+protected static ?string $pluralModelLabel = 'Clienți';  // Romanian plural
+protected static ?string $navigationIcon = 'heroicon-o-users';
+```
+
+### Filament Form – Romanian labels + conditional visibility
+```php
+use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Get;
+
+Select::make('type')
+    ->label('Tip client')
+    ->options(['persoana_juridica' => 'Persoană Juridică', 'persoana_fizica' => 'Persoană Fizică'])
+    ->required()
+    ->live(), // required for reactive fields
+
+TextInput::make('cif')
+    ->label('CIF')
+    ->visible(fn (Get $get) => $get('type') === 'persoana_juridica'),
+```
+
+### Filament Notification – Romanian toast
+```php
+use Filament\Notifications\Notification;
+
+Notification::make()
+    ->title('Salvat cu succes')
+    ->success()
+    ->send();
+
+Notification::make()
+    ->title('Eroare la salvare')
+    ->body('Verificați câmpurile marcate.')
+    ->danger()
+    ->send();
+```
+
+### Filament Table – colored status badge
+```php
+use Filament\Tables\Columns\TextColumn;
+
+TextColumn::make('status')
+    ->label('Status')
+    ->badge()
+    ->color(fn (string $state) => match($state) {
+        'activ'    => 'success',
+        'suspendat'=> 'warning',
+        'expirat'  => 'danger',
+        'reziliat' => 'gray',
+        default    => 'gray',
+    })
+    ->formatStateUsing(fn (string $state) => match($state) {
+        'activ'    => 'Activ',
+        'suspendat'=> 'Suspendat',
+        'expirat'  => 'Expirat',
+        'reziliat' => 'Reziliat',
+        default    => $state,
+    }),
+```
+
+### Filament Action in Table – with confirmation
+```php
+use Filament\Tables\Actions\Action;
+
+Action::make('genereaza_factura')
+    ->label('Generează Factură')
+    ->icon('heroicon-o-document-plus')
+    ->requiresConfirmation()
+    ->modalHeading('Generează factură din contract')
+    ->modalDescription('Se va crea o factură draft pe baza acestui contract.')
+    ->modalSubmitActionLabel('Generează')
+    ->action(function (Contract $record) {
+        // delegate to InvoiceService, never put business logic here
+        $invoice = app(InvoiceService::class)->createFromContract($record);
+        Notification::make()->title('Factură creată')->success()->send();
+        return redirect(InvoiceResource::getUrl('edit', ['record' => $invoice]));
+    }),
+```
+
+### PHP Backed Enum with Romanian label
+```php
+namespace App\Enums;
+
+enum InvoiceStatus: string
+{
+    case Draft   = 'draft';
+    case Trimisa = 'trimisa';
+    case Platita = 'platita';
+    case Anulata = 'anulata';
+
+    public function label(): string
+    {
+        return match($this) {
+            self::Draft   => 'Ciornă',
+            self::Trimisa => 'Trimisă',
+            self::Platita => 'Plătită',
+            self::Anulata => 'Anulată',
+        };
+    }
+
+    public function color(): string
+    {
+        return match($this) {
+            self::Draft   => 'gray',
+            self::Trimisa => 'warning',
+            self::Platita => 'success',
+            self::Anulata => 'danger',
+        };
+    }
+}
+```
+
+### Queued Job skeleton
+```php
+namespace App\Jobs;
+
+use App\Models\Invoice;
+use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Foundation\Bus\Dispatchable;
+use Illuminate\Queue\InteractsWithQueue;
+use Illuminate\Queue\SerializesModels;
+
+class GenerateInvoicePdf implements ShouldQueue
+{
+    use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
+
+    public function __construct(public readonly Invoice $invoice) {}
+
+    public function handle(): void
+    {
+        app(\App\Services\PdfService::class)->generateInvoice($this->invoice);
+    }
+}
+```
+
+---
+
 ## Architecture Rules
 
 ### Multi-Company (CompanyScope)
@@ -93,6 +276,7 @@ The application **must run in Docker** during development. Never assume a local 
 - Contract types: `mentenanta_ddd`, `eveniment_paintball`.
 - Invoice types: `factura`, `proforma`, `chitanta`, `aviz`.
 - Invoice status: `draft`, `trimisa`, `platita`, `anulata`.
+- VAT rates: `21`, `11`, `0` (stored as integer percentage in the `VatRate` enum).
 
 ---
 
@@ -135,7 +319,12 @@ StockMovement
 - Locale: `ro` / `ro_RO`.
 - Date format: `d.m.Y` in views, `Y-m-d` in database.
 - Currency: **RON (lei)**, format `1.234,56 lei`.
-- VAT rate default: **19%** (can be overridden per invoice line).
+- VAT rates are stored in the **`vat_rates` database table** and managed by the admin via `VatRateResource` (navigation group: *Configurare*).
+- Each `VatRate` record has: `value` (decimal %), `label`, `description`, `is_default`, `is_active`, `sort_order`.
+- Initial Romanian rates (seeded, can be changed by admin): **21% Standard**, **11% Redusă**, **0% Scutit**.
+- `Product` and `InvoiceLine` have a `vat_rate_id` foreign key → `vat_rates.id`.
+- Use `VatRate::selectOptions()` (from `App\Models\VatRate`) in all Filament Select fields — never hardcode a percentage.
+- The default VAT rate is resolved via `VatRate::defaultRate()` (the record with `is_default = true`).
 - CIF (Cod de Identificare Fiscală) lookup via ANAF public API on Client form.
 - All validation error messages must be in Romanian.
 
@@ -168,7 +357,8 @@ app/
 │       ├── ContractResource.php
 │       ├── ProductResource.php
 │       ├── StockMovementResource.php
-│       └── InvoiceResource.php
+│       ├── InvoiceResource.php
+│       └── VatRateResource.php
 ├── Http/Middleware/SetActiveCompany.php
 ├── Livewire/CompanySwitcher.php
 ├── Models/
@@ -180,6 +370,7 @@ app/
 │   ├── StockMovement.php
 │   ├── Invoice.php
 │   ├── InvoiceLine.php
+│   ├── VatRate.php
 │   └── Scopes/CompanyScope.php
 ├── Services/
 │   ├── AnafService.php
