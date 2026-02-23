@@ -377,7 +377,7 @@ public function generateContract(Contract $contract): string
 - [x] Contract form shows DDD tab only when type is `mentenanta_ddd`.
 - [x] Contract form shows Paintball tab only when type is `eveniment_paintball`.
 - [x] Contracts expiring within 30 days have a yellow row highlight in the table.
-- [ ] "Generează Factură" action creates a draft Invoice and redirects to the invoice edit page. *(requires invoices table – prompt #5)*
+- [x] "Generează Factură" action creates a draft Invoice and redirects to the invoice edit page.
 - [ ] PDF download works from the contract view page. *(requires full PdfService wiring – prompt #5)*
 - [x] All labels and notifications are in **Romanian**.
 
@@ -389,3 +389,4 @@ public function generateContract(Contract $contract): string
 |---|---|---|---|
 | — | — | Everything | Not started |
 | 2026-02-23 | ContractType, ContractStatus, BillingCycle enums; Contract model (SoftDeletes, CompanyScope, all casts/relationships); contracts migration (all columns, unique company_id+number); ContractResource with tabbed form (General/DDD/Paintball), conditional visibility, table with badge columns + yellow row highlight + Generează Factură action; InvoiceResource stub + pages; Invoice model stub; InvoiceService stub; PdfService + contract.blade.php | "Generează Factură" redirect + PDF download (need invoices table from prompt #5) | Ownership fixed (sudo chown -R relu:relu). Files now created via create_file tool successfully. |
+| 2026-02-23 | Status cleanup audit: verified `Generează Factură` creates draft invoice via `InvoiceService::createFromContract()` and redirects to Invoice edit. | Contract PDF template/download flow from contract page. | `resources/views/pdf/contract.blade.php` and a contract PDF download action/route are not wired in the current code. |

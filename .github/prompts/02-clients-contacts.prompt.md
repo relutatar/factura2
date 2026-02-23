@@ -355,3 +355,5 @@ protected static ?string $navigationIcon     = 'heroicon-o-users';
 |---|---|---|---|
 | — | — | Everything | Not started |
 | 2026-02-23 | Client + Contact models, migrations (clients, contacts tables), ClientType enum, CompanyScope on Client, AnafService (ANAF v9 API with 24h cache, flat normalized response), ClientResource with ANAF suffixAction auto-fill (denumire, adresa, reg_com, telefon, localitate, judet), Romanian labels + type badge in table | Contacts inline RelationManager tab in ClientResource form | app/Services/ directory was not created by create_file tool — fixed with mkdir + cat heredoc. Port/ownership issues on git safe.directory also resolved. |
+| 2026-02-23 | Status cleanup audit: `ContactsRelationManager` is present on `ClientResource` and supports add/edit/delete contacts in the client context. | — | ✅ Complete |
+| 2026-02-23 | Client view modal updated with tabs: `Date generale`, `Contacte`, `Contracte`, `Facturi`; added `Vezi` row action and read-only related data previews in tabs. | — | Implemented in `ClientResource` using Filament `Tabs` + `Placeholder` HTML tables. |
