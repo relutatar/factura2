@@ -253,6 +253,10 @@ class InvoiceResource extends Resource
                             }
 
                             $rows = $record->lines->map(function ($line) use ($record): string {
+                                $qty = (float) $line->quantity;
+                                $qtyFormatted = $qty == (int) $qty
+                                    ? (string) (int) $qty
+                                    : number_format($qty, 2, ',', '.');
                                 $unitPrice = number_format((float) $line->unit_price, 2, ',', '.');
                                 $lineTotal = number_format((float) $line->line_total, 2, ',', '.');
                                 $vatAmount = number_format((float) $line->vat_amount, 2, ',', '.');
@@ -261,7 +265,7 @@ class InvoiceResource extends Resource
                                 $currency  = $record->currency ?? 'RON';
                                 return "<tr class=\"border-b border-gray-100 dark:border-gray-700\">
                                     <td class=\"py-2 pr-4 text-sm\">{$line->description}</td>
-                                    <td class=\"py-2 pr-4 text-sm text-center\">{$line->quantity} {$line->unit}</td>
+                                    <td class=\"py-2 pr-4 text-sm text-center\">{$qtyFormatted} {$line->unit}</td>
                                     <td class=\"py-2 pr-4 text-sm text-right\">{$unitPrice} {$currency}</td>
                                     <td class=\"py-2 pr-4 text-sm text-center\">{$vatLabel}</td>
                                     <td class=\"py-2 pr-4 text-sm text-right\">{$vatAmount} {$currency}</td>
