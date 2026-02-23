@@ -15,12 +15,19 @@ class SetActiveCompany
      */
     public function handle(Request $request, Closure $next): mixed
     {
-        if (auth()->check() && ! session()->has('active_company_id')) {
-            $first = \App\Models\Company::first();
-            if ($first) {
-                session(['active_company_id' => $first->id]);
+        if (auth()->check()) {
+            /** @var \App\Models\User $user */
+            $user = auth()->user();
+            $accessible = $user->accessibleCompanies();
+
+            if (! session()->has('active_company_id') || ! $accessible->contains('id', session('active_company_id'))) {
+                $first = $accessible->first();
+                if ($first) {
+                    session(['active_company_id' => $first->id]);
+                }
             }
         }
+
         return $next($request);
     }
 }

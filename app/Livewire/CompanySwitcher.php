@@ -8,6 +8,13 @@ class CompanySwitcher extends Component
 {
     public function switchTo(int $companyId): void
     {
+        /** @var \App\Models\User $user */
+        $user = auth()->user();
+
+        if (! $user?->canAccessCompany($companyId)) {
+            return;
+        }
+
         session(['active_company_id' => $companyId]);
         $this->redirect(request()->header('Referer') ?? '/admin');
     }
@@ -18,8 +25,11 @@ class CompanySwitcher extends Component
             return '';
         }
 
+        /** @var \App\Models\User $user */
+        $user = auth()->user();
+
         return view('livewire.company-switcher', [
-            'companies'     => \App\Models\Company::all(),
+            'companies'     => $user->accessibleCompanies(),
             'activeCompany' => \App\Models\Company::find(session('active_company_id')),
         ]);
     }

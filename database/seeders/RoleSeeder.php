@@ -16,8 +16,14 @@ class RoleSeeder extends Seeder
         // Assign superadmin role to the primary admin user (idempotent)
         $admin = User::where('email', 'admin@factura2.ro')->first();
 
-        if ($admin && ! $admin->hasRole('superadmin')) {
-            $admin->assignRole($role);
+        if ($admin) {
+            if (! $admin->hasRole('superadmin')) {
+                $admin->assignRole($role);
+            }
+
+            // Superadmin gets access to all companies (idempotent sync)
+            $allCompanyIds = \App\Models\Company::withoutGlobalScopes()->pluck('id')->all();
+            $admin->companies()->syncWithoutDetaching($allCompanyIds);
         }
     }
 }
