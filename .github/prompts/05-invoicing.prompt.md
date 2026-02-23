@@ -761,14 +761,14 @@ protected static ?string $navigationIcon   = 'heroicon-o-receipt-percent';
 ---
 
 ## Acceptance Criteria
-- [ ] `docker compose exec app php artisan migrate` creates `invoices` and `invoice_lines` tables.
-- [ ] Invoice numbering is sequential per company/series with no gaps (e.g. `NOD-2026-0001`).
-- [ ] Totals are always computed from lines — never entered manually.
-- [ ] Finalizing a draft invoice dispatches `GenerateInvoicePdf` job and deducts stock.
-- [ ] PDF is saved to `storage/app/invoices/{company_id}/` and linked to the invoice.
-- [ ] Overdue invoices are highlighted red in the table.
-- [ ] Status transition buttons appear/hide based on current status.
-- [ ] All labels and notifications are in **Romanian**.
+- [x] `docker compose exec app php artisan migrate` creates `invoices` and `invoice_lines` tables.
+- [x] Invoice numbering is sequential per company/series with no gaps (e.g. `NOD-2026-0001`).
+- [x] Totals are always computed from lines — never entered manually.
+- [x] Finalizing a draft invoice dispatches `GenerateInvoicePdf` job and deducts stock.
+- [x] PDF is saved to `storage/app/invoices/{company_id}/` and linked to the invoice.
+- [x] Overdue invoices are highlighted red in the table.
+- [x] Status transition buttons appear/hide based on current status.
+- [x] All labels and notifications are in **Romanian**.
 
 ---
 
@@ -777,3 +777,4 @@ protected static ?string $navigationIcon   = 'heroicon-o-receipt-percent';
 | Date | Implemented | Pending | Blockers / Notes |
 |---|---|---|---|
 | — | — | Everything | Not started |
+| 2026-02-23 | InvoiceType/InvoiceStatus/PaymentMethod enums, Invoice+InvoiceLine models, alter-invoices migration (added full_number/subtotal/vat_total/total/payment_method etc.), invoice_lines migration, InvoiceService (nextNumber, recalculateTotals, transition, createFromContract), PdfService (generateInvoice), GenerateInvoicePdf job, invoice.blade.php PDF template, full InvoiceResource (tabs form, repeater lines, status badge table, 5 table actions), PDF download route | — | ✅ Complete |
