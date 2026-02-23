@@ -131,6 +131,13 @@ class InvoiceResource extends Resource
                         ->label('')
                         ->relationship()
                         ->schema([
+                            // Real field – always saved, never displayed directly
+                            // Defined first so it hydrates before the virtual UM fields read it
+                            TextInput::make('unit')
+                                ->hidden()
+                                ->dehydrated(true)
+                                ->default(BillingCycle::Lunar->value),
+
                             // ── Tip linie (nu se salvează, controlează vizibilitatea) ────────
                             ToggleButtons::make('line_mode')
                                 ->label('Tip linie')
@@ -237,12 +244,6 @@ class InvoiceResource extends Resource
                                     $component->state($get('unit') ?: 'bucată');
                                 })
                                 ->afterStateUpdated(fn ($state, Set $set) => $set('unit', $state)),
-
-                            // Real field – always saved, never displayed directly
-                            TextInput::make('unit')
-                                ->hidden()
-                                ->dehydrated(true)
-                                ->default(BillingCycle::Lunar->value),
 
                             TextInput::make('unit_price')
                                 ->label('Preț/UM')
