@@ -259,7 +259,7 @@ class InvoiceResource extends Resource
                                 $lineTotal = number_format((float) $line->line_total, 2, ',', '.');
                                 $vatAmount = number_format((float) $line->vat_amount, 2, ',', '.');
                                 $totalWithVat = number_format((float) $line->total_with_vat, 2, ',', '.');
-                                $vatLabel  = $line->vatRate?->label ?? ($line->vatRate?->value . '%');
+                                $vatLabel  = $line->vatRate ? $line->vatRate->value . '%' : '—';
                                 $currency  = $record->currency ?? 'RON';
                                 return "<tr class=\"border-b border-gray-100 dark:border-gray-700\">
                                     <td class=\"py-2 pr-4 text-sm\">{$line->description}</td>
