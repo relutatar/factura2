@@ -96,7 +96,7 @@
             <td class="center">{{ $line->unit }}</td>
             <td class="right">{{ number_format((float)$line->quantity, 2, ',', '.') }}</td>
             <td class="right">{{ number_format((float)$line->unit_price, 2, ',', '.') }}</td>
-            <td class="right">{{ $line->vatRate->label }}</td>
+            <td class="right">{{ rtrim(rtrim(number_format((float)$line->vatRate->value, 2, '.', ''), '0'), '.') }}%</td>
             <td class="right">{{ number_format((float)$line->line_total, 2, ',', '.') }}</td>
             <td class="right">{{ number_format((float)$line->total_with_vat, 2, ',', '.') }}</td>
         </tr>
