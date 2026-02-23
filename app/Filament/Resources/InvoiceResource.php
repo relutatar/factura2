@@ -131,13 +131,6 @@ class InvoiceResource extends Resource
                         ->label('')
                         ->relationship()
                         ->schema([
-                            // Real field – always saved, never displayed directly
-                            // Defined first so it hydrates before the virtual UM fields read it
-                            TextInput::make('unit')
-                                ->hidden()
-                                ->dehydrated(true)
-                                ->default(BillingCycle::Lunar->value),
-
                             // ── Tip linie (nu se salvează, controlează vizibilitatea) ────────
                             ToggleButtons::make('line_mode')
                                 ->label('Tip linie')
@@ -182,7 +175,6 @@ class InvoiceResource extends Resource
                                     $product = Product::withoutGlobalScopes()->find($state);
                                     if ($product) {
                                         $set('description', $product->name);
-                                        $set('unit_text',   $product->unit ?? 'bucată');
                                         $set('unit',        $product->unit ?? 'bucată');
                                         $set('unit_price',  $product->unit_price);
                                         $set('vat_rate_id', $product->vat_rate_id);
@@ -207,43 +199,34 @@ class InvoiceResource extends Resource
                                 ->default(1)
                                 ->minValue(0.001),
 
-                            // Virtual: UM pentru servicii – Select cu cicluri de facturare
-                            Select::make('unit_cycle')
-                                ->label('Perioadă / UM')
-                                ->options(collect(BillingCycle::cases())
-                                    ->mapWithKeys(fn (BillingCycle $c) => [$c->value => $c->label()])
-                                    ->all()
-                                )
-                                ->visible(fn (Get $get) => $get('line_mode') !== 'produs')
-                                ->dehydrated(false)
-                                ->live()
-                                ->afterStateHydrated(function ($component, Get $get) {
-                                    // Load stored unit value, or default to contract billing cycle for new lines
-                                    $stored = $get('unit');
-                                    if ($stored && BillingCycle::tryFrom($stored)) {
-                                        $component->state($stored);
-                                        return;
-                                    }
+                            // Singură sursă de adevăr pentru UM – opțiuni grupate
+                            Select::make('unit')
+                                ->label('UM / Perioadă')
+                                ->options([
+                                    'Ciclu facturare' => collect(BillingCycle::cases())
+                                        ->mapWithKeys(fn (BillingCycle $c) => [$c->value => $c->label()])
+                                        ->all(),
+                                    'Unități de măsură' => [
+                                        'bucată'  => 'Bucată',
+                                        'kg'      => 'Kg',
+                                        'litru'   => 'Litru',
+                                        'cutie'   => 'Cutie',
+                                        'set'     => 'Set',
+                                        'doză'    => 'Doză',
+                                        'metru'   => 'Metru',
+                                        'oră'     => 'Oră',
+                                        'zi'      => 'Zi',
+                                    ],
+                                ])
+                                ->default(function (Get $get) {
                                     $contractId = $get('../../contract_id');
                                     $contract   = $contractId ? Contract::find($contractId) : null;
-                                    $component->state(
-                                        $contract?->billing_cycle instanceof BillingCycle
-                                            ? $contract->billing_cycle->value
-                                            : BillingCycle::Lunar->value
-                                    );
+                                    return $contract?->billing_cycle instanceof BillingCycle
+                                        ? $contract->billing_cycle->value
+                                        : BillingCycle::Lunar->value;
                                 })
-                                ->afterStateUpdated(fn ($state, Set $set) => $set('unit', $state)),
-
-                            // Virtual: UM pentru produse – text liber
-                            TextInput::make('unit_text')
-                                ->label('UM')
-                                ->visible(fn (Get $get) => $get('line_mode') === 'produs')
-                                ->dehydrated(false)
-                                ->live()
-                                ->afterStateHydrated(function ($component, Get $get) {
-                                    $component->state($get('unit') ?: 'bucată');
-                                })
-                                ->afterStateUpdated(fn ($state, Set $set) => $set('unit', $state)),
+                                ->searchable()
+                                ->required(),
 
                             TextInput::make('unit_price')
                                 ->label('Preț/UM')
