@@ -124,16 +124,20 @@ class ClientResource extends Resource
                     }),
                 Tables\Columns\TextColumn::make('cif')
                     ->label('CIF')
-                    ->searchable(),
+                    ->searchable()
+                    ->toggleable(),
                 Tables\Columns\TextColumn::make('cnp')
                     ->label('CNP')
-                    ->searchable(),
+                    ->searchable()
+                    ->toggleable(isToggledHiddenByDefault: true),
                 Tables\Columns\TextColumn::make('city')
                     ->label('Oraș')
-                    ->searchable(),
+                    ->searchable()
+                    ->toggleable(),
                 Tables\Columns\TextColumn::make('phone')
                     ->label('Telefon')
-                    ->searchable(),
+                    ->searchable()
+                    ->toggleable(),
             ])
             ->filters([
                 // Add filters as needed

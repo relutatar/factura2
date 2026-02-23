@@ -198,16 +198,19 @@ class CompanyResource extends Resource
 
                 TextColumn::make('cif')
                     ->label('CIF')
-                    ->searchable(),
+                    ->searchable()
+                    ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('city')
                     ->label('Localitate')
-                    ->searchable(),
+                    ->searchable()
+                    ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('invoice_prefix')
                     ->label('Prefix')
                     ->badge()
-                    ->color('info'),
+                    ->color('info')
+                    ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->defaultSort('name')
             ->actions([

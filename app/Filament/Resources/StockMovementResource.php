@@ -52,11 +52,13 @@ class StockMovementResource extends Resource
 
                 TextColumn::make('unit_price')
                     ->label('Preț')
-                    ->money('RON'),
+                    ->money('RON')
+                    ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('notes')
                     ->label('Observații')
-                    ->searchable(),
+                    ->searchable()
+                    ->toggleable(),
 
                 TextColumn::make('invoice.id')
                     ->label('Factură')

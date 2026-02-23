@@ -141,7 +141,8 @@ class ContractResource extends Resource
                     ->label('Tip')
                     ->badge()
                     ->formatStateUsing(fn (mixed $state) => $state instanceof ContractType ? $state->label() : $state)
-                    ->color(fn (mixed $state) => $state instanceof ContractType ? $state->color() : 'gray'),
+                    ->color(fn (mixed $state) => $state instanceof ContractType ? $state->color() : 'gray')
+                    ->toggleable(),
                 TextColumn::make('status')
                     ->label('Status')
                     ->badge()
@@ -150,7 +151,8 @@ class ContractResource extends Resource
                 TextColumn::make('start_date')
                     ->label('Data început')
                     ->date('d.m.Y')
-                    ->sortable(),
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('end_date')
                     ->label('Data sfârșit')
                     ->date('d.m.Y')
@@ -158,7 +160,8 @@ class ContractResource extends Resource
                     ->color(fn (mixed $state) => $state && $state->isPast()
                         ? 'danger'
                         : ($state && $state->diffInDays(now()) <= 30 ? 'warning' : null)
-                    ),
+                    )
+                    ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('value')
                     ->label('Valoare')
                     ->money('RON')

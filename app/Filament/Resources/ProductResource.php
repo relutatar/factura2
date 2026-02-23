@@ -100,7 +100,8 @@ class ProductResource extends Resource
                 TextColumn::make('code')
                     ->label('Cod')
                     ->searchable()
-                    ->sortable(),
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('name')
                     ->label('Denumire')
@@ -109,7 +110,8 @@ class ProductResource extends Resource
 
                 TextColumn::make('category')
                     ->label('Categorie')
-                    ->searchable(),
+                    ->searchable()
+                    ->toggleable(),
 
                 TextColumn::make('stock_quantity')
                     ->label('Stoc')
@@ -119,7 +121,8 @@ class ProductResource extends Resource
 
                 TextColumn::make('stock_minimum')
                     ->label('Stoc minim')
-                    ->sortable(),
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('unit_price')
                     ->label('Preț')

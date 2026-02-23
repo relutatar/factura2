@@ -348,7 +348,8 @@ class InvoiceResource extends Resource
                     ->label('Tip')
                     ->badge()
                     ->formatStateUsing(fn (mixed $state) => $state instanceof InvoiceType ? $state->label() : $state)
-                    ->color('info'),
+                    ->color('info')
+                    ->toggleable(),
 
                 TextColumn::make('status')
                     ->label('Status')
@@ -359,13 +360,15 @@ class InvoiceResource extends Resource
                 TextColumn::make('issue_date')
                     ->label('Data emiterii')
                     ->date('d.m.Y')
-                    ->sortable(),
+                    ->sortable()
+                    ->toggleable(),
 
                 TextColumn::make('due_date')
                     ->label('Scadență')
                     ->date('d.m.Y')
                     ->sortable()
-                    ->color(fn (Invoice $record) => $record->isOverdue() ? 'danger' : null),
+                    ->color(fn (Invoice $record) => $record->isOverdue() ? 'danger' : null)
+                    ->toggleable(),
 
                 TextColumn::make('total')
                     ->label('Total')
