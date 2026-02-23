@@ -392,15 +392,15 @@ In `app/Providers/Filament/AdminPanelProvider.php`, inside the `panel()` method,
 ---
 
 ## Acceptance Criteria
-- [ ] Dashboard page loads at `/admin` without errors.
-- [ ] `InvoiceStatsWidget` shows correct totals scoped to active company.
-- [ ] `UnpaidInvoicesWidget` lists only `status = trimisa` invoices, sorted by due date.
-- [ ] Overdue invoices show the due date in red.
-- [ ] `ExpiringContractsWidget` shows active contracts expiring within 30 days.
-- [ ] `LowStockWidget` is hidden when the active company has no stock-managed products.
-- [ ] `RevenueChartWidget` renders a 12-month line chart of paid invoice totals.
-- [ ] Switching companies (via `CompanySwitcher`) immediately re-scopes all widget data.
-- [ ] All labels and headings are in **Romanian**.
+- [x] Dashboard page loads at `/admin` without errors.
+- [x] `InvoiceStatsWidget` shows correct totals scoped to active company.
+- [x] `UnpaidInvoicesWidget` lists only `status = trimisa` invoices, sorted by due date.
+- [x] Overdue invoices show the due date in red.
+- [x] `ExpiringContractsWidget` shows active contracts expiring within 30 days.
+- [x] `LowStockWidget` is hidden when the active company has no stock-managed products.
+- [x] `RevenueChartWidget` renders a 12-month line chart of paid invoice totals.
+- [x] Switching companies (via `CompanySwitcher`) immediately re-scopes all widget data.
+- [x] All labels and headings are in **Romanian**.
 
 ---
 
@@ -408,4 +408,4 @@ In `app/Providers/Filament/AdminPanelProvider.php`, inside the `panel()` method,
 
 | Date | Implemented | Pending | Blockers / Notes |
 |---|---|---|---|
-| — | — | Everything | Not started |
+| 2026-02-23 | Dashboard page (3-column, Romanian); InvoiceStatsWidget (4 KPI cards); UnpaidInvoicesWidget (Trimisa invoices, overdue red); ExpiringContractsWidget (30-day window); LowStockWidget (hidden if no stock products); RevenueChartWidget (12-month line chart). AdminPanelProvider updated. Committed `bac571f`. | — | ✅ Complete |

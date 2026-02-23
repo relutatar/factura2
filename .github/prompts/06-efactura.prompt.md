@@ -418,13 +418,13 @@ docker compose exec app php artisan migrate
 ---
 
 ## Acceptance Criteria
-- [ ] Migration adds e-Factura credential fields to `companies`.
-- [ ] `AnafService::generateXml()` produces valid UBL 2.1 XML with correct namespaces.
-- [ ] `SubmitEfactura` job uploads XML and stores the `index_incarcare` in `invoices.efactura_id`.
-- [ ] `PollEfacturaStatus` job runs every 10 minutes and updates `efactura_status` for pending invoices.
-- [ ] "Trimite la e-Factura" action is visible only for finalized invoices of juridical clients.
-- [ ] e-Factura status badge shows correct color: green (ok), red (nok), amber (in prelucrare).
-- [ ] Scheduler service in Docker (`scheduler` container) runs `php artisan schedule:work`.
+- [x] Migration adds e-Factura credential fields to `companies`.
+- [x] `AnafService::generateXml()` produces valid UBL 2.1 XML with correct namespaces.
+- [x] `SubmitEfactura` job uploads XML and stores the `index_incarcare` in `invoices.efactura_id`.
+- [x] `PollEfacturaStatus` job runs every 10 minutes and updates `efactura_status` for pending invoices.
+- [x] "Trimite la e-Factura" action is visible only for finalized invoices of juridical clients.
+- [x] e-Factura status badge shows correct color: green (ok), red (nok), amber (in prelucrare).
+- [x] Scheduler service in Docker (`scheduler` container) runs `php artisan schedule:work`.
 
 ---
 
@@ -432,4 +432,4 @@ docker compose exec app php artisan migrate
 
 | Date | Implemented | Pending | Blockers / Notes |
 |---|---|---|---|
-| — | — | Everything | Not started |
+| 2026-02-23 | Migration for company efactura fields; Company model update; e-Factura section in CompanyResource; AnafService extended with generateXml/uploadInvoice/pollStatus; SubmitEfactura job; PollEfacturaStatus job; scheduler registered; InvoiceResource trimite_efactura action + efactura_status badge column. Migration ran. Committed `029c24d`. | — | ✅ Complete |
