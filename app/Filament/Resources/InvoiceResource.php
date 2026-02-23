@@ -4,7 +4,9 @@ namespace App\Filament\Resources;
 
 use App\Enums\InvoiceStatus;
 use App\Enums\InvoiceType;
+use App\Enums\BillingCycle;
 use App\Filament\Resources\InvoiceResource\Pages;
+use App\Models\Contract;
 use App\Models\Invoice;
 use App\Models\Product;
 use App\Models\VatRate;
@@ -57,7 +59,8 @@ class InvoiceResource extends Resource
                         ->relationship('contract', 'number')
                         ->searchable()
                         ->preload()
-                        ->nullable(),
+                        ->nullable()
+                        ->live(),
 
                     Select::make('type')
                         ->label('Tip document')
@@ -195,9 +198,30 @@ class InvoiceResource extends Resource
                                 ->default(1)
                                 ->minValue(0.001),
 
+                            // UM pentru servicii – Select cu cicluri de facturare
+                            Select::make('unit')
+                                ->label('Perioadă / UM')
+                                ->options(collect(BillingCycle::cases())
+                                    ->mapWithKeys(fn (BillingCycle $c) => [$c->value => $c->label()])
+                                    ->all()
+                                )
+                                ->default(function (Get $get) {
+                                    $contractId = $get('../../contract_id');
+                                    if (! $contractId) {
+                                        return BillingCycle::Lunar->value;
+                                    }
+                                    $contract = Contract::find($contractId);
+                                    return $contract?->billing_cycle instanceof BillingCycle
+                                        ? $contract->billing_cycle->value
+                                        : ($contract?->billing_cycle ?? BillingCycle::Lunar->value);
+                                })
+                                ->visible(fn (Get $get) => $get('line_mode') !== 'produs'),
+
+                            // UM pentru produse – text liber
                             TextInput::make('unit')
                                 ->label('UM')
-                                ->default('bucată'),
+                                ->default('bucată')
+                                ->visible(fn (Get $get) => $get('line_mode') === 'produs'),
 
                             TextInput::make('unit_price')
                                 ->label('Preț/UM')
