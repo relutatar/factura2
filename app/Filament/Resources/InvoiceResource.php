@@ -176,9 +176,10 @@ class InvoiceResource extends Resource
                                     $product = Product::withoutGlobalScopes()->find($state);
                                     if ($product) {
                                         $set('description', $product->name);
-                                        $set('unit',        $product->unit ?? 'bucată');
-                                        $set('unit_price',  $product->unit_price);
-                                        $set('vat_rate_id', $product->vat_rate_id);
+                                        $set('unit',         $product->unit ?? 'bucată');
+                                        $set('unit_display', $product->unit ?? 'bucată');
+                                        $set('unit_price',   $product->unit_price);
+                                        $set('vat_rate_id',  $product->vat_rate_id);
                                     }
                                 })
                                 ->columnSpan(4),
@@ -200,24 +201,12 @@ class InvoiceResource extends Resource
                                 ->default(1)
                                 ->minValue(0.001),
 
-                            // Singură sursă de adevăr pentru UM – opțiuni filtrate după tip linie
+                            // Singură sursă de adevăr pentru UM – Select editabil doar pentru linii tip Serviciu
                             Select::make('unit')
-                                ->label('UM / Perioadă')
-                                ->options(fn (Get $get) => $get('line_mode') === 'produs'
-                                    ? [
-                                        'bucată'  => 'Bucată',
-                                        'kg'      => 'Kg',
-                                        'litru'   => 'Litru',
-                                        'cutie'   => 'Cutie',
-                                        'set'     => 'Set',
-                                        'doză'    => 'Doză',
-                                        'metru'   => 'Metru',
-                                        'oră'     => 'Oră',
-                                        'zi'      => 'Zi',
-                                    ]
-                                    : collect(BillingCycle::cases())
-                                        ->mapWithKeys(fn (BillingCycle $c) => [$c->value => $c->label()])
-                                        ->all()
+                                ->label('Perioadă / UM')
+                                ->options(collect(BillingCycle::cases())
+                                    ->mapWithKeys(fn (BillingCycle $c) => [$c->value => $c->label()])
+                                    ->all()
                                 )
                                 ->default(function (Get $get) {
                                     $contractId = $get('../../contract_id');
@@ -227,7 +216,16 @@ class InvoiceResource extends Resource
                                         : BillingCycle::Lunar->value;
                                 })
                                 ->searchable()
-                                ->required(),
+                                ->required()
+                                ->visible(fn (Get $get) => $get('line_mode') !== 'produs'),
+
+                            // UM blocat pentru linii tip Produs (valoarea vine din produs, nu se poate modifica)
+                            TextInput::make('unit_display')
+                                ->label('UM (din produs)')
+                                ->disabled()
+                                ->dehydrated(false)
+                                ->afterStateHydrated(fn ($component, Get $get) => $component->state($get('unit') ?: 'bucată'))
+                                ->visible(fn (Get $get) => $get('line_mode') === 'produs'),
 
                             TextInput::make('unit_price')
                                 ->label('Preț/UM')
