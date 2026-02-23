@@ -30,6 +30,7 @@ class InvoiceService
 
     /**
      * Recalculate subtotal, vat_total and total from the invoice lines.
+     * Also updates line_total, vat_amount and total_with_vat on every line.
      * Always call this after editing lines.
      */
     public function recalculateTotals(Invoice $invoice): void
@@ -41,7 +42,15 @@ class InvoiceService
 
         foreach ($invoice->lines as $line) {
             $lineTotal = round((float) $line->quantity * (float) $line->unit_price, 2);
-            $vatAmount = round($lineTotal * ((float) $line->vatRate->value / 100), 2);
+            $vatRate   = (float) ($line->vatRate->value ?? 0);
+            $vatAmount = round($lineTotal * ($vatRate / 100), 2);
+
+            $line->update([
+                'line_total'     => $lineTotal,
+                'vat_amount'     => $vatAmount,
+                'total_with_vat' => $lineTotal + $vatAmount,
+            ]);
+
             $subtotal += $lineTotal;
             $vatTotal += $vatAmount;
         }
@@ -51,6 +60,8 @@ class InvoiceService
             'vat_total' => $vatTotal,
             'total'     => $subtotal + $vatTotal,
         ]);
+
+        $invoice->load('lines.vatRate');
     }
 
     /**
