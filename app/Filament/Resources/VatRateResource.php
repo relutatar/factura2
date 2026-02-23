@@ -98,6 +98,28 @@ class VatRateResource extends Resource
         return [];
     }
 
+    // ─── Authorization ──────────────────────────────────────────────────────────
+
+    public static function canCreate(): bool
+    {
+        return auth()->user()?->hasRole('superadmin') ?? false;
+    }
+
+    public static function canEdit(\Illuminate\Database\Eloquent\Model $record): bool
+    {
+        return auth()->user()?->hasRole('superadmin') ?? false;
+    }
+
+    public static function canDelete(\Illuminate\Database\Eloquent\Model $record): bool
+    {
+        return auth()->user()?->hasRole('superadmin') ?? false;
+    }
+
+    public static function canDeleteAny(): bool
+    {
+        return auth()->user()?->hasRole('superadmin') ?? false;
+    }
+
     public static function getPages(): array
     {
         return [
