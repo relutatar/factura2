@@ -155,13 +155,22 @@ class InvoiceResource extends Resource
                                 ->live()
                                 ->dehydrated(false)
                                 ->afterStateHydrated(function ($component, Get $get) {
-                                    // When loading an existing line, detect mode from product_id
                                     if ($get('product_id')) {
                                         $component->state('produs');
                                     } else {
                                         $component->state('serviciu');
                                     }
                                 })
+                                ->hiddenOn('view')
+                                ->columnSpanFull(),
+
+                            Placeholder::make('line_mode_label')
+                                ->label('Tip linie')
+                                ->content(fn (Get $get) => match ($get('line_mode')) {
+                                    'produs'   => 'Produs din catalog',
+                                    default    => 'Serviciu',
+                                })
+                                ->visibleOn('view')
                                 ->columnSpanFull(),
 
                             // ── Produs din catalog (vizibil doar în modul 'produs') ───────────
