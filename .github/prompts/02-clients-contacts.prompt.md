@@ -343,7 +343,7 @@ protected static ?string $navigationIcon     = 'heroicon-o-users';
 - [x] `docker compose exec app php artisan migrate` runs without errors (clients + contacts tables).
 - [x] CIF auto-fill calls ANAF API and populates name, reg_com, address fields.
 - [x] `company_id` is never shown in the form — it is set automatically from `session('active_company_id')`.
-- [ ] Contacts tab in the client form allows adding/editing contacts inline.
+- [x] Contacts tab in the client form allows adding/editing contacts inline.
 - [x] Table search works on `name`, `cif`, and `cnp` simultaneously.
 - [x] All form labels and notifications are in **Romanian**.
 
