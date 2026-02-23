@@ -17,6 +17,7 @@ use Filament\Forms\Components\Tabs;
 use Filament\Forms\Components\Tabs\Tab;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\ToggleButtons;
 use Filament\Forms\Form;
 use Filament\Forms\Get;
 use Filament\Forms\Set;
@@ -127,12 +128,43 @@ class InvoiceResource extends Resource
                         ->label('')
                         ->relationship()
                         ->schema([
+                            // ── Tip linie (nu se salvează, controlează vizibilitatea) ────────
+                            ToggleButtons::make('line_mode')
+                                ->label('Tip linie')
+                                ->options([
+                                    'serviciu' => 'Serviciu',
+                                    'produs'   => 'Produs din catalog',
+                                ])
+                                ->icons([
+                                    'serviciu' => 'heroicon-o-wrench-screwdriver',
+                                    'produs'   => 'heroicon-o-cube',
+                                ])
+                                ->colors([
+                                    'serviciu' => 'info',
+                                    'produs'   => 'success',
+                                ])
+                                ->inline()
+                                ->default('serviciu')
+                                ->live()
+                                ->dehydrated(false)
+                                ->afterStateHydrated(function ($component, Get $get) {
+                                    // When loading an existing line, detect mode from product_id
+                                    if ($get('product_id')) {
+                                        $component->state('produs');
+                                    } else {
+                                        $component->state('serviciu');
+                                    }
+                                })
+                                ->columnSpanFull(),
+
+                            // ── Produs din catalog (vizibil doar în modul 'produs') ───────────
                             Select::make('product_id')
-                                ->label('Produs din catalog (opțional)')
+                                ->label('Produs din catalog')
                                 ->options(fn () => Product::withoutGlobalScopes()->pluck('name', 'id'))
                                 ->searchable()
                                 ->nullable()
                                 ->live()
+                                ->visible(fn (Get $get) => $get('line_mode') === 'produs')
                                 ->afterStateUpdated(function ($state, Set $set) {
                                     if (! $state) {
                                         return;
@@ -140,18 +172,23 @@ class InvoiceResource extends Resource
                                     $product = Product::withoutGlobalScopes()->find($state);
                                     if ($product) {
                                         $set('description', $product->name);
-                                        $set('unit', $product->unit);
+                                        $set('unit', $product->unit ?? 'bucată');
                                         $set('unit_price', $product->unit_price);
                                         $set('vat_rate_id', $product->vat_rate_id);
                                     }
                                 })
-                                ->columnSpan(2),
+                                ->columnSpan(4),
 
+                            // ── Descriere ────────────────────────────────────────────────────
                             TextInput::make('description')
-                                ->label('Produs / Serviciu')
+                                ->label(fn (Get $get) => $get('line_mode') === 'produs'
+                                    ? 'Denumire (auto-completat din produs)'
+                                    : 'Descriere serviciu'
+                                )
                                 ->required()
-                                ->columnSpan(2),
+                                ->columnSpan(4),
 
+                            // ── Cantitate / UM / Preț / TVA ──────────────────────────────────
                             TextInput::make('quantity')
                                 ->label('Cantitate')
                                 ->numeric()
