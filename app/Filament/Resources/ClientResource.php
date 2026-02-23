@@ -2,18 +2,23 @@
 
 namespace App\Filament\Resources;
 
+use App\Enums\ClientType;
+use App\Enums\ContractStatus;
+use App\Enums\InvoiceStatus;
+use App\Enums\InvoiceType;
 use App\Filament\Resources\ClientResource\Pages;
 use App\Filament\Resources\ClientResource\RelationManagers;
 use App\Models\Client;
 use App\Services\AnafService;
 use Filament\Forms;
+use Filament\Forms\Components\Placeholder;
+use Filament\Forms\Components\Tabs;
 use Filament\Forms\Form;
 use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
-use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\SoftDeletingScope;
+use Illuminate\Support\HtmlString;
 
 class ClientResource extends Resource
 {
@@ -26,79 +31,131 @@ class ClientResource extends Resource
 
     public static function form(Form $form): Form
     {
-        return $form
-            ->schema([
-                Forms\Components\Select::make('type')
-                    ->label('Tip client')
-                    ->options([
-                        'persoana_juridica' => 'Persoană Juridică',
-                        'persoana_fizica' => 'Persoană Fizică',
-                    ])
-                    ->required()
-                    ->live(),
-                Forms\Components\TextInput::make('name')
-                    ->label('Nume')
-                    ->required(),
-                Forms\Components\TextInput::make('cif')
-                    ->label('CIF')
-                    ->live()
-                    ->visible(fn (Forms\Get $get) => $get('type') === 'persoana_juridica')
-                    ->suffixAction(
-                        Forms\Components\Actions\Action::make('anaf_lookup')
-                            ->label('Caută în ANAF')
-                            ->icon('heroicon-o-magnifying-glass')
-                            ->action(function (Forms\Get $get, Forms\Set $set) {
-                                $cif = $get('cif');
-                                if (! $cif) {
-                                    Notification::make()
-                                        ->title('Introduceți un CIF înainte de căutare')
-                                        ->warning()
-                                        ->send();
-                                    return;
-                                }
+        return $form->schema([
+            Tabs::make('Client')
+                ->tabs([
+                    Tabs\Tab::make('Date generale')
+                        ->schema([
+                            Forms\Components\Select::make('type')
+                                ->label('Tip client')
+                                ->options([
+                                    ClientType::PersoanaJuridica->value => 'Persoană Juridică',
+                                    ClientType::PersoanaFizica->value   => 'Persoană Fizică',
+                                ])
+                                ->required()
+                                ->live(),
 
-                                $result = app(AnafService::class)->lookupCif($cif);
+                            Forms\Components\TextInput::make('name')
+                                ->label('Nume')
+                                ->required(),
 
-                                if (! $result) {
-                                    Notification::make()
-                                        ->title('CIF-ul nu a fost găsit în ANAF')
-                                        ->danger()
-                                        ->send();
-                                    return;
-                                }
+                            Forms\Components\TextInput::make('cif')
+                                ->label('CIF')
+                                ->live()
+                                ->visible(fn (Forms\Get $get): bool => (
+                                    ($get('type') instanceof ClientType ? $get('type')->value : $get('type'))
+                                    === ClientType::PersoanaJuridica->value
+                                ))
+                                ->suffixAction(
+                                    Forms\Components\Actions\Action::make('anaf_lookup')
+                                        ->label('Caută în ANAF')
+                                        ->icon('heroicon-o-magnifying-glass')
+                                        ->action(function (Forms\Get $get, Forms\Set $set): void {
+                                            $cif = $get('cif');
+                                            if (! $cif) {
+                                                Notification::make()
+                                                    ->title('Introduceți un CIF înainte de căutare')
+                                                    ->warning()
+                                                    ->send();
+                                                return;
+                                            }
 
-                                $set('name',    $result['denumire']   ?? '');
-                                $set('reg_com', $result['nrRegCom']   ?? '');
-                                $set('phone',   $result['telefon']    ?? '');
-                                $set('address', $result['adresa']     ?? '');
-                                $set('city',    $result['localitate'] ?? '');
-                                $set('county',  $result['judet']      ?? '');
+                                            $result = app(AnafService::class)->lookupCif($cif);
 
-                                Notification::make()
-                                    ->title('Date preluate din ANAF cu succes')
-                                    ->success()
-                                    ->send();
-                            })
-                    ),
-                Forms\Components\TextInput::make('cnp')
-                    ->label('CNP')
-                    ->visible(fn (Forms\Get $get) => $get('type') === 'persoana_fizica'),
-                Forms\Components\TextInput::make('reg_com')
-                    ->label('Reg. Com.')
-                    ->visible(fn (Forms\Get $get) => $get('type') === 'persoana_juridica'),
-                Forms\Components\TextInput::make('address')
-                    ->label('Adresă'),
-                Forms\Components\TextInput::make('city')
-                    ->label('Oraș'),
-                Forms\Components\TextInput::make('county')
-                    ->label('Județ'),
-                Forms\Components\TextInput::make('phone')
-                    ->label('Telefon'),
-                Forms\Components\TextInput::make('email')
-                    ->label('Email'),
-                Forms\Components\Textarea::make('notes')
-                    ->label('Notițe'),
-            ]);
+                                            if (! $result) {
+                                                Notification::make()
+                                                    ->title('CIF-ul nu a fost găsit în ANAF')
+                                                    ->danger()
+                                                    ->send();
+                                                return;
+                                            }
+
+                                            $set('name', $result['denumire'] ?? '');
+                                            $set('reg_com', $result['nrRegCom'] ?? '');
+                                            $set('phone', $result['telefon'] ?? '');
+                                            $set('address', $result['adresa'] ?? '');
+                                            $set('city', $result['localitate'] ?? '');
+                                            $set('county', $result['judet'] ?? '');
+
+                                            Notification::make()
+                                                ->title('Date preluate din ANAF cu succes')
+                                                ->success()
+                                                ->send();
+                                        })
+                                ),
+
+                            Forms\Components\TextInput::make('cnp')
+                                ->label('CNP')
+                                ->visible(fn (Forms\Get $get): bool => (
+                                    ($get('type') instanceof ClientType ? $get('type')->value : $get('type'))
+                                    === ClientType::PersoanaFizica->value
+                                )),
+
+                            Forms\Components\TextInput::make('reg_com')
+                                ->label('Reg. Com.')
+                                ->visible(fn (Forms\Get $get): bool => (
+                                    ($get('type') instanceof ClientType ? $get('type')->value : $get('type'))
+                                    === ClientType::PersoanaJuridica->value
+                                )),
+
+                            Forms\Components\TextInput::make('address')
+                                ->label('Adresă'),
+
+                            Forms\Components\TextInput::make('city')
+                                ->label('Oraș'),
+
+                            Forms\Components\TextInput::make('county')
+                                ->label('Județ'),
+
+                            Forms\Components\TextInput::make('phone')
+                                ->label('Telefon'),
+
+                            Forms\Components\TextInput::make('email')
+                                ->label('Email'),
+
+                            Forms\Components\Textarea::make('notes')
+                                ->label('Notițe')
+                                ->rows(3)
+                                ->columnSpanFull(),
+                        ])
+                        ->columns(2),
+
+                    Tabs\Tab::make('Contacte')
+                        ->schema([
+                            Placeholder::make('contacts_preview')
+                                ->label('')
+                                ->content(fn (?Client $record): HtmlString => self::renderContactsPreview($record))
+                                ->columnSpanFull(),
+                        ]),
+
+                    Tabs\Tab::make('Contracte')
+                        ->schema([
+                            Placeholder::make('contracts_preview')
+                                ->label('')
+                                ->content(fn (?Client $record): HtmlString => self::renderContractsPreview($record))
+                                ->columnSpanFull(),
+                        ]),
+
+                    Tabs\Tab::make('Facturi')
+                        ->schema([
+                            Placeholder::make('invoices_preview')
+                                ->label('')
+                                ->content(fn (?Client $record): HtmlString => self::renderInvoicesPreview($record))
+                                ->columnSpanFull(),
+                        ]),
+                ])
+                ->columnSpanFull(),
+        ]);
     }
 
     public static function table(Table $table): Table
@@ -143,7 +200,8 @@ class ClientResource extends Resource
                 // Add filters as needed
             ])
             ->actions([
-                Tables\Actions\EditAction::make(),
+                Tables\Actions\ViewAction::make()->label('Vezi'),
+                Tables\Actions\EditAction::make()->label('Editează'),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
@@ -166,5 +224,160 @@ class ClientResource extends Resource
             'create' => Pages\CreateClient::route('/create'),
             'edit' => Pages\EditClient::route('/{record}/edit'),
         ];
+    }
+
+    protected static function renderContactsPreview(?Client $record): HtmlString
+    {
+        if (! $record?->exists) {
+            return new HtmlString('<p class="text-sm text-gray-500">Salvați clientul pentru a vedea contactele.</p>');
+        }
+
+        $contacts = $record->contacts()
+            ->orderBy('name')
+            ->get(['name', 'position', 'phone', 'email']);
+
+        if ($contacts->isEmpty()) {
+            return new HtmlString('<p class="text-sm text-gray-500">Nu există contacte asociate acestui client.</p>');
+        }
+
+        $rows = $contacts->map(function ($contact): string {
+            $name = e($contact->name ?? '—');
+            $position = e($contact->position ?? '—');
+            $phone = e($contact->phone ?? '—');
+            $email = e($contact->email ?? '—');
+
+            return "<tr class=\"border-b border-gray-100 dark:border-gray-700\">
+                <td class=\"py-2 pr-4 text-sm\">{$name}</td>
+                <td class=\"py-2 pr-4 text-sm\">{$position}</td>
+                <td class=\"py-2 pr-4 text-sm\">{$phone}</td>
+                <td class=\"py-2 text-sm\">{$email}</td>
+            </tr>";
+        })->implode('');
+
+        return new HtmlString("
+            <div class=\"overflow-x-auto\">
+                <table class=\"w-full text-left\">
+                    <thead>
+                        <tr class=\"border-b-2 border-gray-200 dark:border-gray-600\">
+                            <th class=\"py-2 pr-4 text-xs font-semibold uppercase text-gray-500\">Nume</th>
+                            <th class=\"py-2 pr-4 text-xs font-semibold uppercase text-gray-500\">Funcție</th>
+                            <th class=\"py-2 pr-4 text-xs font-semibold uppercase text-gray-500\">Telefon</th>
+                            <th class=\"py-2 text-xs font-semibold uppercase text-gray-500\">Email</th>
+                        </tr>
+                    </thead>
+                    <tbody>{$rows}</tbody>
+                </table>
+            </div>
+        ");
+    }
+
+    protected static function renderContractsPreview(?Client $record): HtmlString
+    {
+        if (! $record?->exists) {
+            return new HtmlString('<p class="text-sm text-gray-500">Salvați clientul pentru a vedea contractele.</p>');
+        }
+
+        $contracts = $record->contracts()
+            ->latest('start_date')
+            ->get(['number', 'title', 'status', 'start_date', 'end_date', 'value', 'currency']);
+
+        if ($contracts->isEmpty()) {
+            return new HtmlString('<p class="text-sm text-gray-500">Nu există contracte asociate acestui client.</p>');
+        }
+
+        $rows = $contracts->map(function ($contract): string {
+            $number = e($contract->number ?? '—');
+            $title = e($contract->title ?? '—');
+            $status = $contract->status instanceof ContractStatus
+                ? $contract->status->label()
+                : (string) $contract->status;
+            $startDate = $contract->start_date?->format('d.m.Y') ?? '—';
+            $endDate = $contract->end_date?->format('d.m.Y') ?? '—';
+            $value = number_format((float) $contract->value, 2, ',', '.');
+            $currency = e($contract->currency ?? 'RON');
+
+            return "<tr class=\"border-b border-gray-100 dark:border-gray-700\">
+                <td class=\"py-2 pr-4 text-sm\">{$number}</td>
+                <td class=\"py-2 pr-4 text-sm\">{$title}</td>
+                <td class=\"py-2 pr-4 text-sm\">{$status}</td>
+                <td class=\"py-2 pr-4 text-sm\">{$startDate}</td>
+                <td class=\"py-2 pr-4 text-sm\">{$endDate}</td>
+                <td class=\"py-2 text-sm text-right\">{$value} {$currency}</td>
+            </tr>";
+        })->implode('');
+
+        return new HtmlString("
+            <div class=\"overflow-x-auto\">
+                <table class=\"w-full text-left\">
+                    <thead>
+                        <tr class=\"border-b-2 border-gray-200 dark:border-gray-600\">
+                            <th class=\"py-2 pr-4 text-xs font-semibold uppercase text-gray-500\">Nr. contract</th>
+                            <th class=\"py-2 pr-4 text-xs font-semibold uppercase text-gray-500\">Titlu</th>
+                            <th class=\"py-2 pr-4 text-xs font-semibold uppercase text-gray-500\">Status</th>
+                            <th class=\"py-2 pr-4 text-xs font-semibold uppercase text-gray-500\">Data început</th>
+                            <th class=\"py-2 pr-4 text-xs font-semibold uppercase text-gray-500\">Data sfârșit</th>
+                            <th class=\"py-2 text-xs font-semibold uppercase text-gray-500 text-right\">Valoare</th>
+                        </tr>
+                    </thead>
+                    <tbody>{$rows}</tbody>
+                </table>
+            </div>
+        ");
+    }
+
+    protected static function renderInvoicesPreview(?Client $record): HtmlString
+    {
+        if (! $record?->exists) {
+            return new HtmlString('<p class="text-sm text-gray-500">Salvați clientul pentru a vedea facturile.</p>');
+        }
+
+        $invoices = $record->invoices()
+            ->latest('issue_date')
+            ->get(['id', 'full_number', 'type', 'status', 'issue_date', 'due_date', 'total', 'currency']);
+
+        if ($invoices->isEmpty()) {
+            return new HtmlString('<p class="text-sm text-gray-500">Nu există facturi asociate acestui client.</p>');
+        }
+
+        $rows = $invoices->map(function ($invoice): string {
+            $number = e($invoice->full_number ?: ('#' . $invoice->id));
+            $type = $invoice->type instanceof InvoiceType
+                ? $invoice->type->label()
+                : (string) $invoice->type;
+            $status = $invoice->status instanceof InvoiceStatus
+                ? $invoice->status->label()
+                : (string) $invoice->status;
+            $issueDate = $invoice->issue_date?->format('d.m.Y') ?? '—';
+            $dueDate = $invoice->due_date?->format('d.m.Y') ?? '—';
+            $total = number_format((float) $invoice->total, 2, ',', '.');
+            $currency = e($invoice->currency ?? 'RON');
+
+            return "<tr class=\"border-b border-gray-100 dark:border-gray-700\">
+                <td class=\"py-2 pr-4 text-sm\">{$number}</td>
+                <td class=\"py-2 pr-4 text-sm\">{$type}</td>
+                <td class=\"py-2 pr-4 text-sm\">{$status}</td>
+                <td class=\"py-2 pr-4 text-sm\">{$issueDate}</td>
+                <td class=\"py-2 pr-4 text-sm\">{$dueDate}</td>
+                <td class=\"py-2 text-sm text-right\">{$total} {$currency}</td>
+            </tr>";
+        })->implode('');
+
+        return new HtmlString("
+            <div class=\"overflow-x-auto\">
+                <table class=\"w-full text-left\">
+                    <thead>
+                        <tr class=\"border-b-2 border-gray-200 dark:border-gray-600\">
+                            <th class=\"py-2 pr-4 text-xs font-semibold uppercase text-gray-500\">Număr</th>
+                            <th class=\"py-2 pr-4 text-xs font-semibold uppercase text-gray-500\">Tip</th>
+                            <th class=\"py-2 pr-4 text-xs font-semibold uppercase text-gray-500\">Status</th>
+                            <th class=\"py-2 pr-4 text-xs font-semibold uppercase text-gray-500\">Data emiterii</th>
+                            <th class=\"py-2 pr-4 text-xs font-semibold uppercase text-gray-500\">Scadență</th>
+                            <th class=\"py-2 text-xs font-semibold uppercase text-gray-500 text-right\">Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>{$rows}</tbody>
+                </table>
+            </div>
+        ");
     }
 }
