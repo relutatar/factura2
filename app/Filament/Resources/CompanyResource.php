@@ -12,6 +12,7 @@ use Filament\Forms\Components\Section;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
+use Illuminate\Database\Eloquent\Builder;
 use Filament\Forms\Form;
 use Filament\Forms\Get;
 use Filament\Forms\Set;
@@ -163,6 +164,21 @@ class CompanyResource extends Resource
                         ->columnSpanFull(),
                 ])->columns(2)->collapsible(),
         ]);
+    }
+
+    public static function getEloquentQuery(): Builder
+    {
+        $user = auth()->user();
+
+        if ($user?->hasRole('superadmin')) {
+            return parent::getEloquentQuery()->withoutGlobalScopes();
+        }
+
+        $accessibleIds = $user?->companies()->pluck('companies.id')->all() ?? [];
+
+        return parent::getEloquentQuery()
+            ->withoutGlobalScopes()
+            ->whereIn('id', $accessibleIds);
     }
 
     public static function table(Table $table): Table
