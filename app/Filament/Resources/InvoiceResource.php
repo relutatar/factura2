@@ -185,9 +185,10 @@ class InvoiceResource extends Resource
 
                             // ── Descriere ────────────────────────────────────────────────────
                             TextInput::make('description')
-                                ->label(fn (Get $get) => $get('line_mode') === 'produs'
-                                    ? 'Denumire (auto-completat din produs)'
-                                    : 'Descriere serviciu'
+                                ->label('Descriere pe factură')
+                                ->helperText(fn (Get $get) => $get('line_mode') === 'produs'
+                                    ? 'Pre-completat din produsul ales. Poate fi modificat.'
+                                    : null
                                 )
                                 ->required()
                                 ->columnSpan(4),
