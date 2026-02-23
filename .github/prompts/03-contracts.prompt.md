@@ -373,13 +373,13 @@ public function generateContract(Contract $contract): string
 ---
 
 ## Acceptance Criteria
-- [ ] `docker compose exec app php artisan migrate` runs without errors (contracts table created).
-- [ ] Contract form shows DDD tab only when type is `mentenanta_ddd`.
-- [ ] Contract form shows Paintball tab only when type is `eveniment_paintball`.
-- [ ] Contracts expiring within 30 days have a yellow row highlight in the table.
-- [ ] "Generează Factură" action creates a draft Invoice and redirects to the invoice edit page.
-- [ ] PDF download works from the contract view page.
-- [ ] All labels and notifications are in **Romanian**.
+- [x] `docker compose exec app php artisan migrate` runs without errors (contracts table created).
+- [x] Contract form shows DDD tab only when type is `mentenanta_ddd`.
+- [x] Contract form shows Paintball tab only when type is `eveniment_paintball`.
+- [x] Contracts expiring within 30 days have a yellow row highlight in the table.
+- [ ] "Generează Factură" action creates a draft Invoice and redirects to the invoice edit page. *(requires invoices table – prompt #5)*
+- [ ] PDF download works from the contract view page. *(requires full PdfService wiring – prompt #5)*
+- [x] All labels and notifications are in **Romanian**.
 
 ---
 
@@ -388,3 +388,4 @@ public function generateContract(Contract $contract): string
 | Date | Implemented | Pending | Blockers / Notes |
 |---|---|---|---|
 | — | — | Everything | Not started |
+| 2026-02-23 | ContractType, ContractStatus, BillingCycle enums; Contract model (SoftDeletes, CompanyScope, all casts/relationships); contracts migration (all columns, unique company_id+number); ContractResource with tabbed form (General/DDD/Paintball), conditional visibility, table with badge columns + yellow row highlight + Generează Factură action; InvoiceResource stub + pages; Invoice model stub; InvoiceService stub; PdfService + contract.blade.php | "Generează Factură" redirect + PDF download (need invoices table from prompt #5) | Ownership fixed (sudo chown -R relu:relu). Files now created via create_file tool successfully. |
