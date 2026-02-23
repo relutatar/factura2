@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Enums\BillingCycle;
 use App\Enums\InvoiceStatus;
 use App\Enums\InvoiceType;
 use App\Jobs\GenerateInvoicePdf;
@@ -111,7 +112,9 @@ class InvoiceService
             'invoice_id'     => $invoice->id,
             'description'    => "Servicii conform contract nr. {$contract->number} din {$contractDate}",
             'quantity'       => 1,
-            'unit'           => 'lună',
+            'unit'           => $contract->billing_cycle instanceof BillingCycle
+                ? $contract->billing_cycle->value
+                : (string) ($contract->billing_cycle ?? BillingCycle::Lunar->value),
             'unit_price'     => $lineTotal,
             'vat_rate_id'    => $defaultVatRateId,
             'vat_amount'     => $vatAmount,
