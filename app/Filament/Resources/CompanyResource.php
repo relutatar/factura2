@@ -208,4 +208,33 @@ class CompanyResource extends Resource
             'edit'   => Pages\EditCompany::route('/{record}/edit'),
         ];
     }
+
+    // ─── Authorization ──────────────────────────────────────────────────────────────────
+
+    /** Only superadmin can create new companies. */
+    public static function canCreate(): bool
+    {
+        return auth()->user()?->hasRole('superadmin') ?? false;
+    }
+
+    /** Superadmin can edit any company; regular user can only edit their own. */
+    public static function canEdit(\Illuminate\Database\Eloquent\Model $record): bool
+    {
+        $user = auth()->user();
+        if ($user?->hasRole('superadmin')) {
+            return true;
+        }
+        return $user?->canAccessCompany($record->id) ?? false;
+    }
+
+    /** Only superadmin can delete companies. */
+    public static function canDelete(\Illuminate\Database\Eloquent\Model $record): bool
+    {
+        return auth()->user()?->hasRole('superadmin') ?? false;
+    }
+
+    public static function canDeleteAny(): bool
+    {
+        return auth()->user()?->hasRole('superadmin') ?? false;
+    }
 }

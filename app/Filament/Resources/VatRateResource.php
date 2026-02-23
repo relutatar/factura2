@@ -99,7 +99,10 @@ class VatRateResource extends Resource
     }
 
     // ─── Authorization ──────────────────────────────────────────────────────────
-
+    public static function canAccess(): bool
+    {
+        return auth()->user()?->hasRole('superadmin') ?? false;
+    }
     public static function canCreate(): bool
     {
         return auth()->user()?->hasRole('superadmin') ?? false;
