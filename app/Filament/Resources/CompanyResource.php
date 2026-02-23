@@ -5,10 +5,15 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\CompanyResource\Pages;
 use App\Models\Company;
 use App\Models\CompanyType;
+use App\Services\AnafService;
+use Filament\Forms\Components\Actions\Action as FormAction;
 use Filament\Forms\Components\Section;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Form;
+use Filament\Forms\Get;
+use Filament\Forms\Set;
+use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Tables\Actions\DeleteAction;
 use Filament\Tables\Actions\EditAction;
@@ -57,7 +62,44 @@ class CompanyResource extends Resource
                     TextInput::make('cif')
                         ->label('CIF')
                         ->required()
-                        ->maxLength(50),
+                        ->maxLength(50)
+                        ->live()
+                        ->suffixAction(
+                            FormAction::make('anaf_lookup')
+                                ->label('Caută în ANAF')
+                                ->icon('heroicon-o-magnifying-glass')
+                                ->action(function (Get $get, Set $set) {
+                                    $cif = $get('cif');
+                                    if (! $cif) {
+                                        Notification::make()
+                                            ->title('Introduceți un CIF înainte de căutare')
+                                            ->warning()
+                                            ->send();
+                                        return;
+                                    }
+
+                                    $result = app(AnafService::class)->lookupCif($cif);
+
+                                    if (! $result) {
+                                        Notification::make()
+                                            ->title('CIF-ul nu a fost găsit în ANAF')
+                                            ->danger()
+                                            ->send();
+                                        return;
+                                    }
+
+                                    $set('name',    $result['denumire']   ?? '');
+                                    $set('reg_com', $result['nrRegCom']   ?? '');
+                                    $set('address', $result['adresa']     ?? '');
+                                    $set('city',    $result['localitate'] ?? '');
+                                    $set('county',  $result['judet']      ?? '');
+
+                                    Notification::make()
+                                        ->title('Date preluate din ANAF cu succes')
+                                        ->success()
+                                        ->send();
+                                })
+                        ),
 
                     TextInput::make('reg_com')
                         ->label('Nr. Reg. Comerțului')
