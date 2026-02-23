@@ -265,7 +265,8 @@ class InvoiceResource extends Resource
                                 $currency  = $record->currency ?? 'RON';
                                 return "<tr class=\"border-b border-gray-100 dark:border-gray-700\">
                                     <td class=\"py-2 pr-4 text-sm\">{$line->description}</td>
-                                    <td class=\"py-2 pr-4 text-sm text-center\">{$qtyFormatted} {$line->unit}</td>
+                                    <td class=\"py-2 pr-4 text-sm text-center\">{$qtyFormatted}</td>
+                                    <td class=\"py-2 pr-4 text-sm text-center\">{$line->unit}</td>
                                     <td class=\"py-2 pr-4 text-sm text-right\">{$unitPrice} {$currency}</td>
                                     <td class=\"py-2 pr-4 text-sm text-center\">{$vatLabel}</td>
                                     <td class=\"py-2 pr-4 text-sm text-right\">{$vatAmount} {$currency}</td>
@@ -280,6 +281,7 @@ class InvoiceResource extends Resource
                                         <tr class=\"border-b-2 border-gray-200 dark:border-gray-600\">
                                             <th class=\"py-2 pr-4 text-xs font-semibold text-gray-500 uppercase\">Descriere</th>
                                             <th class=\"py-2 pr-4 text-xs font-semibold text-gray-500 uppercase text-center\">Cantitate</th>
+                                            <th class=\"py-2 pr-4 text-xs font-semibold text-gray-500 uppercase text-center\">UM</th>
                                             <th class=\"py-2 pr-4 text-xs font-semibold text-gray-500 uppercase text-right\">Preț/UM</th>
                                             <th class=\"py-2 pr-4 text-xs font-semibold text-gray-500 uppercase text-center\">TVA</th>
                                             <th class=\"py-2 pr-4 text-xs font-semibold text-gray-500 uppercase text-right\">Val. TVA</th>
