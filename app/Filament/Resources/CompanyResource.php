@@ -7,9 +7,11 @@ use App\Models\Company;
 use App\Models\CompanyType;
 use App\Services\AnafService;
 use Filament\Forms\Components\Actions\Action as FormAction;
+use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Section;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Toggle;
 use Filament\Forms\Form;
 use Filament\Forms\Get;
 use Filament\Forms\Set;
@@ -132,6 +134,34 @@ class CompanyResource extends Resource
                         ->label('Bancă')
                         ->maxLength(100),
                 ])->columns(2),
+
+            Section::make('e-Factura ANAF')
+                ->description('Configurare autentificare ANAF SPV pentru trimiterea facturilor electronice.')
+                ->schema([
+                    TextInput::make('efactura_cif')
+                        ->label('CIF pentru ANAF')
+                        ->helperText('CIF-ul utilizat la autentificarea în SPV ANAF.')
+                        ->maxLength(50),
+
+                    Toggle::make('efactura_test_mode')
+                        ->label('Mod test ANAF')
+                        ->helperText('Activat = trimitere în sandbox ANAF, fără efecte legale.')
+                        ->default(true),
+
+                    FileUpload::make('efactura_certificate_path')
+                        ->label('Certificat digital (.p12 / .pfx)')
+                        ->acceptedFileTypes(['application/x-pkcs12', '.p12', '.pfx'])
+                        ->directory('certificates')
+                        ->visibility('private')
+                        ->columnSpanFull(),
+
+                    TextInput::make('efactura_certificate_password')
+                        ->label('Parolă certificat')
+                        ->password()
+                        ->revealable()
+                        ->maxLength(255)
+                        ->columnSpanFull(),
+                ])->columns(2)->collapsible(),
         ]);
     }
 

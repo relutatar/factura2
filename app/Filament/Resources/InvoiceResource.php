@@ -2,10 +2,13 @@
 
 namespace App\Filament\Resources;
 
+use App\Enums\ClientType;
 use App\Enums\InvoiceStatus;
 use App\Enums\InvoiceType;
 use App\Enums\BillingCycle;
 use App\Filament\Resources\InvoiceResource\Pages;
+use App\Jobs\SubmitEfactura;
+use App\Models\Company;
 use App\Models\Contract;
 use App\Models\Invoice;
 use App\Models\Product;
@@ -359,6 +362,23 @@ class InvoiceResource extends Resource
                     ->label('Total')
                     ->money('RON')
                     ->sortable(),
+
+                TextColumn::make('efactura_status')
+                    ->label('Status e-Factura')
+                    ->badge()
+                    ->color(fn (?string $state) => match ($state) {
+                        'ok'            => 'success',
+                        'nok'           => 'danger',
+                        'in_prelucrare' => 'warning',
+                        default         => 'gray',
+                    })
+                    ->formatStateUsing(fn (?string $state) => match ($state) {
+                        'ok'            => 'Acceptat ANAF',
+                        'nok'           => 'Respins ANAF',
+                        'in_prelucrare' => 'În prelucrare',
+                        default         => '—',
+                    })
+                    ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->recordClasses(fn (Invoice $record) => $record->isOverdue() ? 'bg-red-50 dark:bg-red-950' : null)
             ->defaultSort('created_at', 'desc')
@@ -415,6 +435,30 @@ class InvoiceResource extends Resource
                     ->visible(fn (Invoice $record) => ! empty($record->pdf_path) && file_exists($record->pdf_path))
                     ->url(fn (Invoice $record) => route('invoices.pdf', $record))
                     ->openUrlInNewTab(),
+
+                Action::make('trimite_efactura')
+                    ->label('Trimite la e-Factura')
+                    ->icon('heroicon-o-paper-airplane')
+                    ->requiresConfirmation()
+                    ->modalHeading('Trimite factura la ANAF e-Factura')
+                    ->modalDescription('Factura va fi transmisă la ANAF. Asigurați-vă că factura este finalizată și clientul este persoană juridică.')
+                    ->modalSubmitActionLabel('Trimite')
+                    ->visible(fn (Invoice $record) =>
+                        $record->status === InvoiceStatus::Trimisa
+                        && empty($record->efactura_id)
+                        && $record->client?->type === ClientType::PersoanaJuridica
+                    )
+                    ->action(function (Invoice $record) {
+                        $company = Company::withoutGlobalScopes()->find($record->company_id);
+
+                        SubmitEfactura::dispatch($record, $company);
+
+                        Notification::make()
+                            ->title('Factură trimisă în coadă pentru e-Factura')
+                            ->body('Statusul va fi actualizat automat în câteva minute.')
+                            ->success()
+                            ->send();
+                    }),
             ])
             ->bulkActions([]);
     }
