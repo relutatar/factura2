@@ -340,12 +340,12 @@ protected static ?string $navigationIcon     = 'heroicon-o-users';
 ---
 
 ## Acceptance Criteria
-- [ ] `docker compose exec app php artisan migrate` runs without errors (clients + contacts tables).
-- [ ] CIF auto-fill calls ANAF API and populates name, reg_com, address fields.
-- [ ] `company_id` is never shown in the form — it is set automatically from `session('active_company_id')`.
+- [x] `docker compose exec app php artisan migrate` runs without errors (clients + contacts tables).
+- [x] CIF auto-fill calls ANAF API and populates name, reg_com, address fields.
+- [x] `company_id` is never shown in the form — it is set automatically from `session('active_company_id')`.
 - [ ] Contacts tab in the client form allows adding/editing contacts inline.
-- [ ] Table search works on `name`, `cif`, and `cnp` simultaneously.
-- [ ] All form labels and notifications are in **Romanian**.
+- [x] Table search works on `name`, `cif`, and `cnp` simultaneously.
+- [x] All form labels and notifications are in **Romanian**.
 
 ---
 
@@ -354,3 +354,4 @@ protected static ?string $navigationIcon     = 'heroicon-o-users';
 | Date | Implemented | Pending | Blockers / Notes |
 |---|---|---|---|
 | — | — | Everything | Not started |
+| 2026-02-23 | Client + Contact models, migrations (clients, contacts tables), ClientType enum, CompanyScope on Client, AnafService (ANAF v9 API with 24h cache, flat normalized response), ClientResource with ANAF suffixAction auto-fill (denumire, adresa, reg_com, telefon, localitate, judet), Romanian labels + type badge in table | Contacts inline RelationManager tab in ClientResource form | app/Services/ directory was not created by create_file tool — fixed with mkdir + cat heredoc. Port/ownership issues on git safe.directory also resolved. |
