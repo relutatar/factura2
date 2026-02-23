@@ -20,6 +20,7 @@ use Filament\Forms\Components\Tabs\Tab;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\ToggleButtons;
+use Illuminate\Support\HtmlString;
 use Filament\Forms\Form;
 use Filament\Forms\Get;
 use Filament\Forms\Set;
@@ -246,6 +247,50 @@ class InvoiceResource extends Resource
                 ]),
 
                 Tab::make('Totaluri')->schema([
+                    Placeholder::make('lines_summary')
+                        ->label('Linii factură')
+                        ->content(function (?Invoice $record): HtmlString {
+                            if (! $record || $record->lines->isEmpty()) {
+                                return new HtmlString('<p class="text-sm text-gray-400">Nicio linie salvată.</p>');
+                            }
+
+                            $rows = $record->lines->map(function ($line) use ($record): string {
+                                $unitPrice = number_format((float) $line->unit_price, 2, ',', '.');
+                                $lineTotal = number_format((float) $line->line_total, 2, ',', '.');
+                                $vatAmount = number_format((float) $line->vat_amount, 2, ',', '.');
+                                $totalWithVat = number_format((float) $line->total_with_vat, 2, ',', '.');
+                                $vatLabel  = $line->vatRate?->label ?? ($line->vatRate?->value . '%');
+                                $currency  = $record->currency ?? 'RON';
+                                return "<tr class=\"border-b border-gray-100 dark:border-gray-700\">
+                                    <td class=\"py-2 pr-4 text-sm\">{$line->description}</td>
+                                    <td class=\"py-2 pr-4 text-sm text-center\">{$line->quantity} {$line->unit}</td>
+                                    <td class=\"py-2 pr-4 text-sm text-right\">{$unitPrice} {$currency}</td>
+                                    <td class=\"py-2 pr-4 text-sm text-center\">{$vatLabel}</td>
+                                    <td class=\"py-2 pr-4 text-sm text-right\">{$vatAmount} {$currency}</td>
+                                    <td class=\"py-2 text-sm text-right font-medium\">{$totalWithVat} {$currency}</td>
+                                </tr>";
+                            })->implode('');
+
+                            return new HtmlString("
+                                <div class=\"overflow-x-auto\">
+                                <table class=\"w-full text-left\">
+                                    <thead>
+                                        <tr class=\"border-b-2 border-gray-200 dark:border-gray-600\">
+                                            <th class=\"py-2 pr-4 text-xs font-semibold text-gray-500 uppercase\">Descriere</th>
+                                            <th class=\"py-2 pr-4 text-xs font-semibold text-gray-500 uppercase text-center\">Cantitate</th>
+                                            <th class=\"py-2 pr-4 text-xs font-semibold text-gray-500 uppercase text-right\">Preț/UM</th>
+                                            <th class=\"py-2 pr-4 text-xs font-semibold text-gray-500 uppercase text-center\">TVA</th>
+                                            <th class=\"py-2 pr-4 text-xs font-semibold text-gray-500 uppercase text-right\">Val. TVA</th>
+                                            <th class=\"py-2 text-xs font-semibold text-gray-500 uppercase text-right\">Total cu TVA</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>{$rows}</tbody>
+                                </table>
+                                </div>
+                            ");
+                        })
+                        ->columnSpanFull(),
+
                     Placeholder::make('subtotal_display')
                         ->label('Subtotal (fără TVA)')
                         ->content(fn (?Invoice $record) => $record
