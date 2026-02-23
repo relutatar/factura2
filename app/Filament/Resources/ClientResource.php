@@ -112,15 +112,15 @@ class ClientResource extends Resource
                 Tables\Columns\TextColumn::make('type')
                     ->label('Tip')
                     ->badge()
-                    ->color(fn (string $state) => match($state) {
+                    ->color(fn (mixed $state) => match($state instanceof \App\Enums\ClientType ? $state->value : $state) {
                         'persoana_juridica' => 'success',
-                        'persoana_fizica' => 'info',
-                        default => 'gray',
+                        'persoana_fizica'   => 'info',
+                        default             => 'gray',
                     })
-                    ->formatStateUsing(fn (string $state) => match($state) {
+                    ->formatStateUsing(fn (mixed $state) => match($state instanceof \App\Enums\ClientType ? $state->value : $state) {
                         'persoana_juridica' => 'Persoană Juridică',
-                        'persoana_fizica' => 'Persoană Fizică',
-                        default => $state,
+                        'persoana_fizica'   => 'Persoană Fizică',
+                        default             => (string) $state,
                     }),
                 Tables\Columns\TextColumn::make('cif')
                     ->label('CIF')
