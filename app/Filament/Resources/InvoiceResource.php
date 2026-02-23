@@ -215,13 +215,15 @@ class InvoiceResource extends Resource
                                         ? $contract->billing_cycle->value
                                         : ($contract?->billing_cycle ?? BillingCycle::Lunar->value);
                                 })
-                                ->visible(fn (Get $get) => $get('line_mode') !== 'produs'),
+                                ->visible(fn (Get $get) => $get('line_mode') !== 'produs')
+                                ->dehydrated(fn (Get $get) => $get('line_mode') !== 'produs'),
 
                             // UM pentru produse – text liber
                             TextInput::make('unit')
                                 ->label('UM')
                                 ->default('bucată')
-                                ->visible(fn (Get $get) => $get('line_mode') === 'produs'),
+                                ->visible(fn (Get $get) => $get('line_mode') === 'produs')
+                                ->dehydrated(fn (Get $get) => $get('line_mode') === 'produs'),
 
                             TextInput::make('unit_price')
                                 ->label('Preț/UM')
