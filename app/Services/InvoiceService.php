@@ -7,6 +7,8 @@ use App\Enums\InvoiceType;
 use App\Jobs\GenerateInvoicePdf;
 use App\Models\Contract;
 use App\Models\Invoice;
+use App\Models\InvoiceLine;
+use App\Models\VatRate;
 
 class InvoiceService
 {
@@ -81,7 +83,7 @@ class InvoiceService
         $series  = ($company->invoice_prefix ?? 'F') . '-' . $year;
         $number  = $this->nextNumber($company->id, $series);
 
-        return Invoice::create([
+        $invoice = Invoice::create([
             'company_id'     => $contract->company_id,
             'client_id'      => $contract->client_id,
             'contract_id'    => $contract->id,
@@ -94,5 +96,32 @@ class InvoiceService
             'due_date'       => now()->addDays(30)->toDateString(),
             'payment_method' => 'ordin_plata',
         ]);
+
+        // Default first line referencing the contract
+        $contractDate = $contract->start_date
+            ? $contract->start_date->format('d.m.Y')
+            : now()->format('d.m.Y');
+
+        $defaultVatRateId = optional(VatRate::defaultRate())->id ?? VatRate::first()?->id;
+        $lineTotal        = (float) ($contract->value ?? 0);
+        $vatRate          = VatRate::find($defaultVatRateId);
+        $vatAmount        = $vatRate ? round($lineTotal * ((float) $vatRate->value / 100), 2) : 0;
+
+        InvoiceLine::create([
+            'invoice_id'     => $invoice->id,
+            'description'    => "Servicii conform contract nr. {$contract->number} din {$contractDate}",
+            'quantity'       => 1,
+            'unit'           => 'lună',
+            'unit_price'     => $lineTotal,
+            'vat_rate_id'    => $defaultVatRateId,
+            'vat_amount'     => $vatAmount,
+            'line_total'     => $lineTotal,
+            'total_with_vat' => $lineTotal + $vatAmount,
+            'sort_order'     => 0,
+        ]);
+
+        $this->recalculateTotals($invoice);
+
+        return $invoice;
     }
 }

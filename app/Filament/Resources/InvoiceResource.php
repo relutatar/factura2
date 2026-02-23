@@ -128,7 +128,7 @@ class InvoiceResource extends Resource
                         ->relationship()
                         ->schema([
                             Select::make('product_id')
-                                ->label('Produs')
+                                ->label('Produs din catalog (opțional)')
                                 ->options(fn () => Product::withoutGlobalScopes()->pluck('name', 'id'))
                                 ->searchable()
                                 ->nullable()
@@ -148,7 +148,7 @@ class InvoiceResource extends Resource
                                 ->columnSpan(2),
 
                             TextInput::make('description')
-                                ->label('Descriere')
+                                ->label('Produs / Serviciu')
                                 ->required()
                                 ->columnSpan(2),
 
