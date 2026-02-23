@@ -199,14 +199,11 @@ class InvoiceResource extends Resource
                                 ->default(1)
                                 ->minValue(0.001),
 
-                            // Singură sursă de adevăr pentru UM – opțiuni grupate
+                            // Singură sursă de adevăr pentru UM – opțiuni filtrate după tip linie
                             Select::make('unit')
                                 ->label('UM / Perioadă')
-                                ->options([
-                                    'Ciclu facturare' => collect(BillingCycle::cases())
-                                        ->mapWithKeys(fn (BillingCycle $c) => [$c->value => $c->label()])
-                                        ->all(),
-                                    'Unități de măsură' => [
+                                ->options(fn (Get $get) => $get('line_mode') === 'produs'
+                                    ? [
                                         'bucată'  => 'Bucată',
                                         'kg'      => 'Kg',
                                         'litru'   => 'Litru',
@@ -216,8 +213,11 @@ class InvoiceResource extends Resource
                                         'metru'   => 'Metru',
                                         'oră'     => 'Oră',
                                         'zi'      => 'Zi',
-                                    ],
-                                ])
+                                    ]
+                                    : collect(BillingCycle::cases())
+                                        ->mapWithKeys(fn (BillingCycle $c) => [$c->value => $c->label()])
+                                        ->all()
+                                )
                                 ->default(function (Get $get) {
                                     $contractId = $get('../../contract_id');
                                     $contract   = $contractId ? Contract::find($contractId) : null;
