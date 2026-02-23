@@ -410,13 +410,13 @@ public static function getPages(): array
 ---
 
 ## Acceptance Criteria
-- [ ] `docker compose exec app php artisan migrate` creates `products` and `stock_movements` tables.
-- [ ] Creating a `StockMovement` of type `intrare` increases `products.stock_quantity`.
-- [ ] Creating a `StockMovement` of type `iesire` decreases `products.stock_quantity`.
-- [ ] Products at or below `stock_minimum` show a red row and red stock value in the table.
-- [ ] "Înregistrează intrare stoc" modal works and updates stock immediately.
-- [ ] `StockMovementResource` table is read-only (no create/edit form).
-- [ ] All labels and notifications are in **Romanian**.
+- [x] `docker compose exec app php artisan migrate` creates `products` and `stock_movements` tables.
+- [x] Creating a `StockMovement` of type `intrare` increases `products.stock_quantity`.
+- [x] Creating a `StockMovement` of type `iesire` decreases `products.stock_quantity`.
+- [x] Products at or below `stock_minimum` show a red row and red stock value in the table.
+- [x] "Înregistrează intrare stoc" modal works and updates stock immediately.
+- [x] `StockMovementResource` table is read-only (no create/edit form).
+- [x] All labels and notifications are in **Romanian**.
 
 ---
 
@@ -425,3 +425,4 @@ public static function getPages(): array
 | Date | Implemented | Pending | Blockers / Notes |
 |---|---|---|---|
 | — | — | Everything | Not started |
+| 2026-02-23 | StockMovementType enum, VatRate model + migration + seeder (21%/11%/0%), Product + StockMovement models with CompanyScope + stock auto-update trigger, StockService, ProductResource (full form/table/intrare action), VatRateResource (Configurare group), StockMovementResource (read-only list), all migrations run | — | ✅ Complete |
