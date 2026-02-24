@@ -130,14 +130,6 @@ class ClientResource extends Resource
                         ])
                         ->columns(2),
 
-                    Tabs\Tab::make('Contacte')
-                        ->schema([
-                            Placeholder::make('contacts_preview')
-                                ->label('')
-                                ->content(fn (?Client $record): HtmlString => self::renderContactsPreview($record))
-                                ->columnSpanFull(),
-                        ]),
-
                     Tabs\Tab::make('Contracte')
                         ->schema([
                             Placeholder::make('contracts_preview')
@@ -224,51 +216,6 @@ class ClientResource extends Resource
             'create' => Pages\CreateClient::route('/create'),
             'edit' => Pages\EditClient::route('/{record}/edit'),
         ];
-    }
-
-    protected static function renderContactsPreview(?Client $record): HtmlString
-    {
-        if (! $record?->exists) {
-            return new HtmlString('<p class="text-sm text-gray-500">Salvați clientul pentru a vedea contactele.</p>');
-        }
-
-        $contacts = $record->contacts()
-            ->orderBy('name')
-            ->get(['name', 'position', 'phone', 'email']);
-
-        if ($contacts->isEmpty()) {
-            return new HtmlString('<p class="text-sm text-gray-500">Nu există contacte asociate acestui client.</p>');
-        }
-
-        $rows = $contacts->map(function ($contact): string {
-            $name = e($contact->name ?? '—');
-            $position = e($contact->position ?? '—');
-            $phone = e($contact->phone ?? '—');
-            $email = e($contact->email ?? '—');
-
-            return "<tr class=\"border-b border-gray-100 dark:border-gray-700\">
-                <td class=\"py-2 pr-4 text-sm\">{$name}</td>
-                <td class=\"py-2 pr-4 text-sm\">{$position}</td>
-                <td class=\"py-2 pr-4 text-sm\">{$phone}</td>
-                <td class=\"py-2 text-sm\">{$email}</td>
-            </tr>";
-        })->implode('');
-
-        return new HtmlString("
-            <div class=\"overflow-x-auto\">
-                <table class=\"w-full text-left\">
-                    <thead>
-                        <tr class=\"border-b-2 border-gray-200 dark:border-gray-600\">
-                            <th class=\"py-2 pr-4 text-xs font-semibold uppercase text-gray-500\">Nume</th>
-                            <th class=\"py-2 pr-4 text-xs font-semibold uppercase text-gray-500\">Funcție</th>
-                            <th class=\"py-2 pr-4 text-xs font-semibold uppercase text-gray-500\">Telefon</th>
-                            <th class=\"py-2 text-xs font-semibold uppercase text-gray-500\">Email</th>
-                        </tr>
-                    </thead>
-                    <tbody>{$rows}</tbody>
-                </table>
-            </div>
-        ");
     }
 
     protected static function renderContractsPreview(?Client $record): HtmlString
