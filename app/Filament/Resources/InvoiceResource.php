@@ -105,11 +105,6 @@ class InvoiceResource extends Resource
                         ->label('Referință plată')
                         ->maxLength(100),
 
-                    TextInput::make('currency')
-                        ->label('Monedă')
-                        ->default('RON')
-                        ->maxLength(3),
-
                     DatePicker::make('issue_date')
                         ->label('Data emiterii')
                         ->required()
@@ -280,15 +275,14 @@ class InvoiceResource extends Resource
                                 $vatAmount = number_format((float) $line->vat_amount, 2, ',', '.');
                                 $totalWithVat = number_format((float) $line->total_with_vat, 2, ',', '.');
                                 $vatLabel  = $line->vatRate ? $line->vatRate->value . '%' : '—';
-                                $currency  = $record->currency ?? 'RON';
                                 return "<tr class=\"border-b border-gray-100 dark:border-gray-700\">
                                     <td class=\"py-2 pr-4 text-sm\">{$line->description}</td>
                                     <td class=\"py-2 pr-4 text-sm text-center\">{$qtyFormatted}</td>
                                     <td class=\"py-2 pr-4 text-sm text-center\">{$line->unit}</td>
-                                    <td class=\"py-2 pr-4 text-sm text-right\">{$unitPrice} {$currency}</td>
+                                    <td class=\"py-2 pr-4 text-sm text-right\">{$unitPrice} RON</td>
                                     <td class=\"py-2 pr-4 text-sm text-center\">{$vatLabel}</td>
-                                    <td class=\"py-2 pr-4 text-sm text-right\">{$vatAmount} {$currency}</td>
-                                    <td class=\"py-2 text-sm text-right font-medium\">{$totalWithVat} {$currency}</td>
+                                    <td class=\"py-2 pr-4 text-sm text-right\">{$vatAmount} RON</td>
+                                    <td class=\"py-2 text-sm text-right font-medium\">{$totalWithVat} RON</td>
                                 </tr>";
                             })->implode('');
 
@@ -316,19 +310,19 @@ class InvoiceResource extends Resource
                     Placeholder::make('subtotal_display')
                         ->label('Subtotal (fără TVA)')
                         ->content(fn (?Invoice $record) => $record
-                            ? number_format((float) $record->subtotal, 2, ',', '.') . ' ' . ($record->currency ?? 'RON')
+                            ? number_format((float) $record->subtotal, 2, ',', '.') . ' RON'
                             : '—'),
 
                     Placeholder::make('vat_total_display')
                         ->label('TVA')
                         ->content(fn (?Invoice $record) => $record
-                            ? number_format((float) $record->vat_total, 2, ',', '.') . ' ' . ($record->currency ?? 'RON')
+                            ? number_format((float) $record->vat_total, 2, ',', '.') . ' RON'
                             : '—'),
 
                     Placeholder::make('total_display')
                         ->label('TOTAL de plată')
                         ->content(fn (?Invoice $record) => $record
-                            ? number_format((float) $record->total, 2, ',', '.') . ' ' . ($record->currency ?? 'RON')
+                            ? number_format((float) $record->total, 2, ',', '.') . ' RON'
                             : '—'),
                 ])->columns(3),
 

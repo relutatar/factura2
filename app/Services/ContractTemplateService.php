@@ -96,7 +96,6 @@ class ContractTemplateService
             '{{contract.start_date}}'     => 'Data început (d.m.Y)',
             '{{contract.end_date}}'       => 'Data sfârșit (d.m.Y) sau "nedeterminat"',
             '{{contract.value}}'          => 'Valoare contract formatată',
-            '{{contract.currency}}'       => 'Moneda contractului',
             '{{contract.notes}}'          => 'Observații contract',
         ];
 
@@ -158,8 +157,8 @@ class ContractTemplateService
             '{{contract.signed_date}}'    => e($contract->signed_date?->format('d.m.Y') ?? $contract->start_date?->format('d.m.Y') ?? ''),
             '{{contract.start_date}}'     => e($contract->start_date?->format('d.m.Y') ?? ''),
             '{{contract.end_date}}'       => e($contract->end_date?->format('d.m.Y') ?? 'nedeterminat'),
-            '{{contract.value}}'          => e($this->formatMoney((float) $contract->value, $contract->currency)),
-            '{{contract.currency}}'       => e($contract->currency ?? 'RON'),
+            '{{contract.value}}'          => e($this->formatMoney((float) $contract->value)),
+            '{{contract.currency}}'       => 'RON',
             '{{contract.billing_cycle}}'  => e($this->formatAttributeValue($additionalAttributes['billing_cycle'] ?? '')),
             '{{contract.notes}}'          => e($contract->notes ?? ''),
             '{{contract.ddd_frequency}}'  => e($this->formatAttributeValue($additionalAttributes['ddd_frequency'] ?? '')),
@@ -185,11 +184,9 @@ class ContractTemplateService
         return $rendered;
     }
 
-    private function formatMoney(float $value, ?string $currency): string
+    private function formatMoney(float $value): string
     {
-        $currency = $currency ?: 'RON';
-
-        return number_format($value, 2, ',', '.') . ' ' . $currency;
+        return number_format($value, 2, ',', '.') . ' RON';
     }
 
     private function defaultTemplate(): string
@@ -251,7 +248,6 @@ class ContractTemplateService
 <h3>IV. Valoare și modalitate de plată</h3>
 <p><strong>Valoare contract:</strong> {{contract.value}}</p>
 <p><strong>Ciclu facturare:</strong> {{attr.billing_cycle}}</p>
-<p><strong>Monedă:</strong> {{contract.currency}}</p>
 <p>Termenele și condițiile de plată se stabilesc prin facturile emise în baza prezentului contract.</p>
 <p><strong>Frecvență servicii:</strong> {{attr.frequency}}</p>
 <p><strong>Locații:</strong> {{attr.locations}}</p>
@@ -308,7 +304,6 @@ TPL;
 
 <h3>IV. Valoare și plată</h3>
 <p><strong>Valoare lucrare:</strong> {{contract.value}}</p>
-<p><strong>Monedă:</strong> {{contract.currency}}</p>
 <p>Plata se efectuează integral, conform facturii emise după finalizarea lucrării sau conform termenelor agreate de părți.</p>
 
 <h3>V. Recepția lucrării</h3>

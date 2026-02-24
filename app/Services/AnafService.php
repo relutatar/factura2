@@ -85,7 +85,7 @@ class AnafService
 
         $issueDateStr = $invoice->issue_date->format('Y-m-d');
         $dueDateStr   = $invoice->due_date?->format('Y-m-d') ?? $issueDateStr;
-        $currency     = $invoice->currency ?? 'RON';
+        $currency     = 'RON';
 
         $linesXml = '';
         foreach ($invoice->lines as $i => $line) {

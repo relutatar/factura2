@@ -106,6 +106,7 @@ class InvoiceService
             'full_number'    => $series . '-' . str_pad((string) $number, 4, '0', STR_PAD_LEFT),
             'issue_date'     => now()->toDateString(),
             'due_date'       => now()->addDays(30)->toDateString(),
+            'currency'       => 'RON',
             'payment_method' => 'ordin_plata',
         ]);
 

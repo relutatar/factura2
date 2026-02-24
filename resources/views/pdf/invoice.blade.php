@@ -106,15 +106,15 @@
     <tfoot>
         <tr>
             <td colspan="6" class="right">Subtotal:</td>
-            <td colspan="2" class="right">{{ number_format((float)$invoice->subtotal, 2, ',', '.') }} {{ $invoice->currency }}</td>
+            <td colspan="2" class="right">{{ number_format((float)$invoice->subtotal, 2, ',', '.') }} RON</td>
         </tr>
         <tr>
             <td colspan="6" class="right">TVA:</td>
-            <td colspan="2" class="right">{{ number_format((float)$invoice->vat_total, 2, ',', '.') }} {{ $invoice->currency }}</td>
+            <td colspan="2" class="right">{{ number_format((float)$invoice->vat_total, 2, ',', '.') }} RON</td>
         </tr>
         <tr class="total-row">
             <td colspan="6" class="right">TOTAL DE PLATĂ:</td>
-            <td colspan="2" class="right">{{ number_format((float)$invoice->total, 2, ',', '.') }} {{ $invoice->currency }}</td>
+            <td colspan="2" class="right">{{ number_format((float)$invoice->total, 2, ',', '.') }} RON</td>
         </tr>
     </tfoot>
 </table>
