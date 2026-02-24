@@ -75,7 +75,7 @@ class ContractTemplateResource extends Resource
                             ->replaceMatches('/[^a-z0-9_]/', '')
                             ->trim('_')
                         )
-                        ->helperText('Folosit în placeholder: {{attr.cheie}}'),
+                        ->helperText('Folosit în variabilă: {{attr.cheie}}'),
                     TextInput::make('label')
                         ->label('Etichetă')
                         ->required()
@@ -164,10 +164,10 @@ class ContractTemplateResource extends Resource
                     'underline',
                     'undo',
                 ])
-                ->helperText('Editor WYSIWYG. Inserați placeholders prin copy/paste din lista de mai jos (ex: {{contract.number}}).'),
+                ->helperText('Editor WYSIWYG. Inserați variabile prin copy/paste din lista de mai jos (ex: {{contract.number}}).'),
 
             Placeholder::make('placeholder_list')
-                ->label('Placeholders disponibile')
+                ->label('Variabile disponibile')
                 ->content(fn (Get $get): HtmlString => self::renderPlaceholders($get('custom_fields')))
                 ->columnSpanFull(),
         ])->columns(3);
@@ -239,7 +239,7 @@ class ContractTemplateResource extends Resource
                 <table class="w-full text-left">
                     <thead>
                         <tr class="border-b-2 border-gray-200 dark:border-gray-600">
-                            <th class="py-2 pr-4">Placeholder</th>
+                            <th class="py-2 pr-4">Variabilă</th>
                             <th class="py-2">Descriere</th>
                         </tr>
                     </thead>
