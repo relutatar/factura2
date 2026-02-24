@@ -234,31 +234,13 @@ class ContractTemplateService
     {
         return <<<'TPL'
 <p class="doc-kicker">Model standard</p>
-<h1 class="doc-title">CONTRACT CADRU</h1>
+<h2 class="doc-title">CONTRACT CADRU</h2>
 <p class="doc-subtitle">Prestări Servicii</p>
 <p class="doc-number">Nr. {{contract.number}} din {{contract.signed_date}}</p>
 
 <h3>I. Părțile contractante</h3>
-<table class="party-table">
-    <tr>
-        <td class="party-label">Prestator</td>
-        <td>
-            <strong>{{company.name}}</strong><br>
-            CIF {{company.cif}}, Reg. Com. {{company.reg_com}}<br>
-            Sediu: {{company.address}}, {{company.city}}, {{company.county}}<br>
-            IBAN: {{company.iban}} | Banca: {{company.bank}}
-        </td>
-    </tr>
-    <tr>
-        <td class="party-label">Beneficiar</td>
-        <td>
-            <strong>{{client.name}}</strong><br>
-            CIF/CNP: {{client.cif}}{{client.cnp}} | Reg. Com.: {{client.reg_com}}<br>
-            Sediu: {{client.address}}, {{client.city}}, {{client.county}}<br>
-            Contact: {{client.phone}} | {{client.email}}
-        </td>
-    </tr>
-</table>
+<p><strong>Prestator:</strong> {{company.name}}, CIF {{company.cif}}, Reg. Com. {{company.reg_com}}, sediu {{company.address}}, {{company.city}}, {{company.county}}, IBAN {{company.iban}}, banca {{company.bank}}.</p>
+<p><strong>Beneficiar:</strong> {{client.name}}, CIF/CNP {{client.cif}}{{client.cnp}}, Reg. Com. {{client.reg_com}}, sediu {{client.address}}, {{client.city}}, {{client.county}}, contact {{client.phone}} / {{client.email}}.</p>
 
 <h3>II. Obiectul contractului</h3>
 <p>Prestatorul se obligă să furnizeze serviciile agreate de părți în cadrul prezentului contract, conform solicitărilor Beneficiarului.</p>
@@ -267,20 +249,9 @@ class ContractTemplateService
 <p>Contractul este valabil în perioada <strong>{{contract.start_date}}</strong> - <strong>{{contract.end_date}}</strong>.</p>
 
 <h3>IV. Valoare și modalitate de plată</h3>
-<table class="summary-table">
-    <tr>
-        <td class="summary-label">Valoare contract</td>
-        <td><strong>{{contract.value}}</strong></td>
-    </tr>
-    <tr>
-        <td class="summary-label">Ciclu facturare</td>
-        <td>{{attr.billing_cycle}}</td>
-    </tr>
-    <tr>
-        <td class="summary-label">Monedă</td>
-        <td>{{contract.currency}}</td>
-    </tr>
-</table>
+<p><strong>Valoare contract:</strong> {{contract.value}}</p>
+<p><strong>Ciclu facturare:</strong> {{attr.billing_cycle}}</p>
+<p><strong>Monedă:</strong> {{contract.currency}}</p>
 <p>Termenele și condițiile de plată se stabilesc prin facturile emise în baza prezentului contract.</p>
 <p><strong>Frecvență servicii:</strong> {{attr.frequency}}</p>
 <p><strong>Locații:</strong> {{attr.locations}}</p>
@@ -321,31 +292,13 @@ TPL;
     {
         return <<<'TPL'
 <p class="doc-kicker">Model standard</p>
-<h1 class="doc-title">CONTRACT DE PRESTĂRI SERVICII</h1>
+<h2 class="doc-title">CONTRACT DE PRESTĂRI SERVICII</h2>
 <p class="doc-subtitle">Lucrare Unică</p>
 <p class="doc-number">Nr. {{contract.number}} din {{contract.signed_date}}</p>
 
 <h3>I. Părțile contractante</h3>
-<table class="party-table">
-    <tr>
-        <td class="party-label">Prestator</td>
-        <td>
-            <strong>{{company.name}}</strong><br>
-            CIF {{company.cif}}, Reg. Com. {{company.reg_com}}<br>
-            Sediu: {{company.address}}, {{company.city}}, {{company.county}}<br>
-            IBAN: {{company.iban}} | Banca: {{company.bank}}
-        </td>
-    </tr>
-    <tr>
-        <td class="party-label">Beneficiar</td>
-        <td>
-            <strong>{{client.name}}</strong><br>
-            CIF/CNP: {{client.cif}}{{client.cnp}} | Reg. Com.: {{client.reg_com}}<br>
-            Sediu: {{client.address}}, {{client.city}}, {{client.county}}<br>
-            Contact: {{client.phone}} | {{client.email}}
-        </td>
-    </tr>
-</table>
+<p><strong>Prestator:</strong> {{company.name}}, CIF {{company.cif}}, Reg. Com. {{company.reg_com}}, sediu {{company.address}}, {{company.city}}, {{company.county}}, IBAN {{company.iban}}, banca {{company.bank}}.</p>
+<p><strong>Beneficiar:</strong> {{client.name}}, CIF/CNP {{client.cif}}{{client.cnp}}, Reg. Com. {{client.reg_com}}, sediu {{client.address}}, {{client.city}}, {{client.county}}, contact {{client.phone}} / {{client.email}}.</p>
 
 <h3>II. Obiectul contractului</h3>
 <p>Prestatorul se obligă să execute o lucrare unică de prestări servicii pentru Beneficiar, conform solicitării agreate între părți.</p>
@@ -354,16 +307,8 @@ TPL;
 <p>Lucrarea se realizează în perioada <strong>{{contract.start_date}}</strong> - <strong>{{contract.end_date}}</strong>.</p>
 
 <h3>IV. Valoare și plată</h3>
-<table class="summary-table">
-    <tr>
-        <td class="summary-label">Valoare lucrare</td>
-        <td><strong>{{contract.value}}</strong></td>
-    </tr>
-    <tr>
-        <td class="summary-label">Monedă</td>
-        <td>{{contract.currency}}</td>
-    </tr>
-</table>
+<p><strong>Valoare lucrare:</strong> {{contract.value}}</p>
+<p><strong>Monedă:</strong> {{contract.currency}}</p>
 <p>Plata se efectuează integral, conform facturii emise după finalizarea lucrării sau conform termenelor agreate de părți.</p>
 
 <h3>V. Recepția lucrării</h3>
