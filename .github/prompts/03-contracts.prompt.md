@@ -378,7 +378,7 @@ public function generateContract(Contract $contract): string
 - [x] Contract form shows Paintball tab only when type is `eveniment_paintball`.
 - [x] Contracts expiring within 30 days have a yellow row highlight in the table.
 - [x] "Generează Factură" action creates a draft Invoice and redirects to the invoice edit page.
-- [ ] PDF download works from the contract view page. *(requires full PdfService wiring – prompt #5)*
+- [x] PDF download works from the contract list/view page.
 - [x] All labels and notifications are in **Romanian**.
 
 ---
@@ -390,3 +390,7 @@ public function generateContract(Contract $contract): string
 | — | — | Everything | Not started |
 | 2026-02-23 | ContractType, ContractStatus, BillingCycle enums; Contract model (SoftDeletes, CompanyScope, all casts/relationships); contracts migration (all columns, unique company_id+number); ContractResource with tabbed form (General/DDD/Paintball), conditional visibility, table with badge columns + yellow row highlight + Generează Factură action; InvoiceResource stub + pages; Invoice model stub; InvoiceService stub; PdfService + contract.blade.php | "Generează Factură" redirect + PDF download (need invoices table from prompt #5) | Ownership fixed (sudo chown -R relu:relu). Files now created via create_file tool successfully. |
 | 2026-02-23 | Status cleanup audit: verified `Generează Factură` creates draft invoice via `InvoiceService::createFromContract()` and redirects to Invoice edit. | Contract PDF template/download flow from contract page. | `resources/views/pdf/contract.blade.php` and a contract PDF download action/route are not wired in the current code. |
+| 2026-02-23 | Added company-scoped contract templates with placeholders (`contract_templates` table, `ContractTemplate` model, `ContractTemplateResource` + CRUD pages), linked templates to contracts (`contract_template_id`), placeholder rendering service (`ContractTemplateService`), contract PDF Blade template, `/contracts/{contract}/pdf` route and `Descarcă PDF` action in `ContractResource`. | — | ✅ Complete |
+| 2026-02-23 | `Text șablon` switched from plain textarea to Filament `RichEditor` (WYSIWYG) with formatting toolbar; removed the custom `@` autocomplete overlay view. | Optional future improvement: placeholder insert dropdown inside RichEditor toolbar. | Current flow uses copy/paste placeholders from the helper table below editor. |
+| 2026-02-23 | Added preset prepopulation in `Șabloane contracte`: `Model standard` selector + `Aplică model standard` action that fills `Text șablon` with Romanian legal templates for `Contract cadru de Prestări Servicii` and `Contract de Intervenție la Cerere`. | — | Presets are provided by `ContractTemplateService::standardModelContent()`. |
+| 2026-02-23 | Improved contract visual formatting: redesigned `pdf/contract.blade.php` with professional layout/typography, and upgraded both standard models to structured sections (`party-table`, `summary-table`, notes block, signature block) for cleaner generated PDFs. | — | Existing custom templates continue to render; new styles apply automatically via generic CSS. |
