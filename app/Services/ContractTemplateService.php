@@ -2,9 +2,7 @@
 
 namespace App\Services;
 
-use App\Enums\BillingCycle;
 use App\Models\Contract;
-use Illuminate\Support\Str;
 
 class ContractTemplateService
 {
@@ -14,16 +12,54 @@ class ContractTemplateService
     public function standardModelOptions(): array
     {
         return [
-            'cadru_prestari_servicii' => 'Contract cadru de Prestări Servicii',
-            'interventie_la_cerere'   => 'Contract de Intervenție la Cerere',
+            'prestari_servicii_cadru' => 'Contract cadru de prestări servicii',
+            'prestari_servicii_unic'  => 'Contract de prestări servicii',
         ];
     }
 
     public function standardModelContent(string $model): string
     {
         return match ($model) {
-            'interventie_la_cerere' => $this->modelInterventieLaCerere(),
-            default                 => $this->modelCadruPrestariServicii(),
+            'prestari_servicii_unic' => $this->modelPrestariServiciiUnic(),
+            default => $this->modelPrestariServiciiCadru(),
+        };
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    public function standardModelCustomFields(string $model): array
+    {
+        return match ($model) {
+            'prestari_servicii_unic' => [],
+            default => [
+                [
+                    'key'        => 'billing_cycle',
+                    'label'      => 'Ciclu facturare',
+                    'field_type' => 'select',
+                    'required'   => false,
+                    'options'    => ['Lunar', 'Trimestrial', 'Anual', 'Unic'],
+                ],
+                [
+                    'key'        => 'frequency',
+                    'label'      => 'Frecvență servicii',
+                    'field_type' => 'select',
+                    'required'   => false,
+                    'options'    => ['Lunar', 'Bilunar', 'Trimestrial', 'Semestrial', 'Anual'],
+                ],
+                [
+                    'key'        => 'locations',
+                    'label'      => 'Locații',
+                    'field_type' => 'textarea',
+                    'required'   => false,
+                ],
+                [
+                    'key'        => 'service_scope',
+                    'label'      => 'Sfera serviciilor',
+                    'field_type' => 'textarea',
+                    'required'   => false,
+                ],
+            ],
         };
     }
 
@@ -32,9 +68,9 @@ class ContractTemplateService
      *
      * @return array<string, string>
      */
-    public function placeholders(): array
+    public function placeholders(array $customFields = []): array
     {
-        return [
+        $items = [
             '{{company.name}}'            => 'Denumirea companiei furnizoare',
             '{{company.cif}}'             => 'CIF companie',
             '{{company.reg_com}}'         => 'Nr. Registrul Comerțului companie',
@@ -53,17 +89,34 @@ class ContractTemplateService
             '{{client.phone}}'            => 'Telefon client',
             '{{client.email}}'            => 'Email client',
             '{{contract.number}}'         => 'Număr contract',
-            '{{contract.title}}'          => 'Titlu contract',
-            '{{contract.type}}'           => 'Tip contract (etichetă RO)',
-            '{{contract.status}}'         => 'Status contract (etichetă RO)',
+            '{{contract.type}}'           => 'Tip contract (numele șablonului selectat)',
+            '{{contract.template}}'       => 'Șablon contract (alias pentru contract.type)',
+            '{{contract.status}}'         => 'Status contract',
+            '{{contract.signed_date}}'    => 'Data contractului (semnare, d.m.Y)',
             '{{contract.start_date}}'     => 'Data început (d.m.Y)',
             '{{contract.end_date}}'       => 'Data sfârșit (d.m.Y) sau "nedeterminat"',
             '{{contract.value}}'          => 'Valoare contract formatată',
             '{{contract.currency}}'       => 'Moneda contractului',
-            '{{contract.billing_cycle}}'  => 'Ciclu facturare (etichetă RO)',
             '{{contract.notes}}'          => 'Observații contract',
-            '{{contract.ddd_frequency}}'  => 'Frecvență tratament DDD',
         ];
+
+        foreach ($customFields as $field) {
+            if (! is_array($field)) {
+                continue;
+            }
+
+            $key = trim((string) ($field['key'] ?? ''));
+            if ($key === '') {
+                continue;
+            }
+
+            $label = trim((string) ($field['label'] ?? ''));
+            $items['{{attr.' . $key . '}}'] = $label !== ''
+                ? 'Câmp personalizat: ' . $label
+                : 'Câmp personalizat: ' . $key;
+        }
+
+        return $items;
     }
 
     /**
@@ -72,6 +125,7 @@ class ContractTemplateService
     public function render(Contract $contract, ?string $templateContent = null): string
     {
         $contract->loadMissing(['company', 'client', 'template']);
+        $additionalAttributes = is_array($contract->additional_attributes) ? $contract->additional_attributes : [];
 
         $content = $templateContent;
         if (blank($content)) {
@@ -97,17 +151,30 @@ class ContractTemplateService
             '{{client.phone}}'            => e($contract->client->phone ?? ''),
             '{{client.email}}'            => e($contract->client->email ?? ''),
             '{{contract.number}}'         => e($contract->number ?? ''),
-            '{{contract.title}}'          => e($contract->title ?? ''),
-            '{{contract.type}}'           => e($contract->type?->label() ?? ''),
+            '{{contract.title}}'          => e($this->formatAttributeValue($additionalAttributes['contract_title'] ?? '')),
+            '{{contract.type}}'           => e($contract->template?->name ?? ''),
+            '{{contract.template}}'       => e($contract->template?->name ?? ''),
             '{{contract.status}}'         => e($contract->status?->label() ?? ''),
+            '{{contract.signed_date}}'    => e($contract->signed_date?->format('d.m.Y') ?? $contract->start_date?->format('d.m.Y') ?? ''),
             '{{contract.start_date}}'     => e($contract->start_date?->format('d.m.Y') ?? ''),
             '{{contract.end_date}}'       => e($contract->end_date?->format('d.m.Y') ?? 'nedeterminat'),
             '{{contract.value}}'          => e($this->formatMoney((float) $contract->value, $contract->currency)),
             '{{contract.currency}}'       => e($contract->currency ?? 'RON'),
-            '{{contract.billing_cycle}}'  => e($this->billingCycleLabel($contract)),
+            '{{contract.billing_cycle}}'  => e($this->formatAttributeValue($additionalAttributes['billing_cycle'] ?? '')),
             '{{contract.notes}}'          => e($contract->notes ?? ''),
-            '{{contract.ddd_frequency}}'  => e($contract->ddd_frequency ?? ''),
+            '{{contract.ddd_frequency}}'  => e($this->formatAttributeValue($additionalAttributes['ddd_frequency'] ?? '')),
+            '{{contract.ddd_locations}}'  => e($this->formatAttributeValue($additionalAttributes['ddd_locations'] ?? '')),
+            '{{contract.paintball_sessions}}' => e($this->formatAttributeValue($additionalAttributes['paintball_sessions'] ?? '')),
+            '{{contract.paintball_players}}'  => e($this->formatAttributeValue($additionalAttributes['paintball_players'] ?? '')),
         ];
+
+        foreach ($additionalAttributes as $key => $value) {
+            if (! is_string($key) || trim($key) === '') {
+                continue;
+            }
+
+            $replacements['{{attr.' . $key . '}}'] = e($this->formatAttributeValue($value));
+        }
 
         $rendered = strtr($content, $replacements);
 
@@ -125,33 +192,51 @@ class ContractTemplateService
         return number_format($value, 2, ',', '.') . ' ' . $currency;
     }
 
-    private function billingCycleLabel(Contract $contract): string
-    {
-        if ($contract->billing_cycle instanceof BillingCycle) {
-            return $contract->billing_cycle->label();
-        }
-
-        return match ((string) $contract->billing_cycle) {
-            'lunar'       => 'Lunar',
-            'trimestrial' => 'Trimestrial',
-            'anual'       => 'Anual',
-            'unic'        => 'Unic',
-            default       => Str::of((string) $contract->billing_cycle)->replace('_', ' ')->title()->toString(),
-        };
-    }
-
     private function defaultTemplate(): string
     {
-        return $this->modelCadruPrestariServicii();
+        return $this->modelPrestariServiciiCadru();
     }
 
-    private function modelCadruPrestariServicii(): string
+    private function formatAttributeValue(mixed $value): string
+    {
+        if ($value === null) {
+            return '';
+        }
+
+        if (is_bool($value)) {
+            return $value ? 'Da' : 'Nu';
+        }
+
+        if (is_array($value)) {
+            return collect($value)
+                ->map(function (mixed $item): string {
+                    if (is_array($item)) {
+                        return collect($item)
+                            ->filter(fn (mixed $v): bool => $v !== null && $v !== '')
+                            ->map(fn (mixed $v, string|int $k): string => is_string($k) ? "{$k}: {$v}" : (string) $v)
+                            ->implode(', ');
+                    }
+
+                    if (is_bool($item)) {
+                        return $item ? 'Da' : 'Nu';
+                    }
+
+                    return (string) $item;
+                })
+                ->filter(fn (string $item): bool => $item !== '')
+                ->implode('; ');
+        }
+
+        return (string) $value;
+    }
+
+    private function modelPrestariServiciiCadru(): string
     {
         return <<<'TPL'
 <p class="doc-kicker">Model standard</p>
 <h1 class="doc-title">CONTRACT CADRU</h1>
 <p class="doc-subtitle">Prestări Servicii</p>
-<p class="doc-number">Nr. {{contract.number}}</p>
+<p class="doc-number">Nr. {{contract.number}} din {{contract.signed_date}}</p>
 
 <h3>I. Părțile contractante</h3>
 <table class="party-table">
@@ -176,7 +261,7 @@ class ContractTemplateService
 </table>
 
 <h3>II. Obiectul contractului</h3>
-<p>Prestatorul se obligă să furnizeze serviciile descrise în cadrul prezentului contract: <strong>{{contract.title}}</strong>.</p>
+<p>Prestatorul se obligă să furnizeze serviciile agreate de părți în cadrul prezentului contract, conform solicitărilor Beneficiarului.</p>
 
 <h3>III. Durata contractului</h3>
 <p>Contractul este valabil în perioada <strong>{{contract.start_date}}</strong> - <strong>{{contract.end_date}}</strong>.</p>
@@ -189,7 +274,7 @@ class ContractTemplateService
     </tr>
     <tr>
         <td class="summary-label">Ciclu facturare</td>
-        <td>{{contract.billing_cycle}}</td>
+        <td>{{attr.billing_cycle}}</td>
     </tr>
     <tr>
         <td class="summary-label">Monedă</td>
@@ -197,6 +282,9 @@ class ContractTemplateService
     </tr>
 </table>
 <p>Termenele și condițiile de plată se stabilesc prin facturile emise în baza prezentului contract.</p>
+<p><strong>Frecvență servicii:</strong> {{attr.frequency}}</p>
+<p><strong>Locații:</strong> {{attr.locations}}</p>
+<p><strong>Sfera serviciilor:</strong> {{attr.service_scope}}</p>
 
 <h3>V. Drepturile și obligațiile părților</h3>
 <ul>
@@ -229,13 +317,13 @@ class ContractTemplateService
 TPL;
     }
 
-    private function modelInterventieLaCerere(): string
+    private function modelPrestariServiciiUnic(): string
     {
         return <<<'TPL'
 <p class="doc-kicker">Model standard</p>
-<h1 class="doc-title">CONTRACT</h1>
-<p class="doc-subtitle">Intervenție la Cerere</p>
-<p class="doc-number">Nr. {{contract.number}}</p>
+<h1 class="doc-title">CONTRACT DE PRESTĂRI SERVICII</h1>
+<p class="doc-subtitle">Lucrare Unică</p>
+<p class="doc-number">Nr. {{contract.number}} din {{contract.signed_date}}</p>
 
 <h3>I. Părțile contractante</h3>
 <table class="party-table">
@@ -260,39 +348,28 @@ TPL;
 </table>
 
 <h3>II. Obiectul contractului</h3>
-<p>Prestatorul va executa intervenții punctuale la solicitarea Beneficiarului pentru: <strong>{{contract.title}}</strong>.</p>
+<p>Prestatorul se obligă să execute o lucrare unică de prestări servicii pentru Beneficiar, conform solicitării agreate între părți.</p>
 
-<h3>III. Lansarea comenzilor de intervenție</h3>
-<p>Intervențiile se solicită de Beneficiar prin e-mail/telefon, iar Prestatorul confirmă disponibilitatea și termenul estimat de execuție.</p>
+<h3>III. Termen de execuție</h3>
+<p>Lucrarea se realizează în perioada <strong>{{contract.start_date}}</strong> - <strong>{{contract.end_date}}</strong>.</p>
 
-<h3>IV. Termen și execuție</h3>
-<p>Prezentul contract este valabil în perioada {{contract.start_date}} - {{contract.end_date}}.</p>
-<p>Durata fiecărei intervenții se stabilește în funcție de complexitatea lucrărilor.</p>
-
-<h3>V. Preț și facturare</h3>
+<h3>IV. Valoare și plată</h3>
 <table class="summary-table">
     <tr>
-        <td class="summary-label">Valoare estimată</td>
+        <td class="summary-label">Valoare lucrare</td>
         <td><strong>{{contract.value}}</strong></td>
-    </tr>
-    <tr>
-        <td class="summary-label">Ciclu facturare</td>
-        <td>{{contract.billing_cycle}}</td>
     </tr>
     <tr>
         <td class="summary-label">Monedă</td>
         <td>{{contract.currency}}</td>
     </tr>
 </table>
-<p>Facturarea se realizează conform ciclului stabilit sau per intervenție, după caz.</p>
+<p>Plata se efectuează integral, conform facturii emise după finalizarea lucrării sau conform termenelor agreate de părți.</p>
 
-<h3>VI. Recepția serviciilor</h3>
-<p>La finalizarea intervenției, părțile pot semna proces-verbal/raport de intervenție, care confirmă serviciile prestate.</p>
+<h3>V. Recepția lucrării</h3>
+<p>La finalizarea serviciilor, părțile confirmă execuția prin document de recepție sau prin acceptarea explicită a lucrării.</p>
 
-<h3>VII. Răspundere contractuală</h3>
-<p>Fiecare parte răspunde pentru neexecutarea sau executarea necorespunzătoare a obligațiilor asumate prin prezentul contract.</p>
-
-<h3>VIII. Dispoziții finale</h3>
+<h3>VI. Dispoziții finale</h3>
 <div class="section-note">
     <strong>Observații:</strong> {{contract.notes}}
 </div>

@@ -8,8 +8,10 @@ use App\Services\ContractTemplateService;
 use Filament\Forms\Components\Actions;
 use Filament\Forms\Components\Actions\Action;
 use Filament\Forms\Components\Placeholder;
+use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\RichEditor;
 use Filament\Forms\Components\Select;
+use Filament\Forms\Components\TagsInput;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\Toggle;
@@ -57,9 +59,60 @@ class ContractTemplateResource extends Resource
                 ->rows(2)
                 ->columnSpanFull(),
 
+            Repeater::make('custom_fields')
+                ->label('Atribute suplimentare contract')
+                ->helperText('Definiți câmpurile personalizate disponibile pentru contractele create din acest șablon.')
+                ->schema([
+                    TextInput::make('key')
+                        ->label('Cheie')
+                        ->required()
+                        ->maxLength(50)
+                        ->rules(['regex:/^[a-z][a-z0-9_]*$/'])
+                        ->dehydrateStateUsing(fn (?string $state): string => (string) str($state ?? '')
+                            ->lower()
+                            ->replace('-', '_')
+                            ->replace(' ', '_')
+                            ->replaceMatches('/[^a-z0-9_]/', '')
+                            ->trim('_')
+                        )
+                        ->helperText('Folosit în placeholder: {{attr.cheie}}'),
+                    TextInput::make('label')
+                        ->label('Etichetă')
+                        ->required()
+                        ->maxLength(120),
+                    Select::make('field_type')
+                        ->label('Tip câmp')
+                        ->options([
+                            'text'     => 'Text',
+                            'textarea' => 'Text lung',
+                            'number'   => 'Număr',
+                            'date'     => 'Dată',
+                            'select'   => 'Select',
+                            'toggle'   => 'Da/Nu',
+                        ])
+                        ->default('text')
+                        ->required()
+                        ->live(),
+                    TagsInput::make('options')
+                        ->label('Opțiuni select')
+                        ->placeholder('Adaugă opțiune')
+                        ->visible(fn (Get $get): bool => $get('field_type') === 'select')
+                        ->helperText('Pentru tipul Select, fiecare etichetă adăugată devine o opțiune.'),
+                    Toggle::make('required')
+                        ->label('Obligatoriu')
+                        ->default(false),
+                ])
+                ->columns(2)
+                ->columnSpanFull()
+                ->reorderableWithButtons()
+                ->addActionLabel('Adaugă atribut')
+                ->itemLabel(fn (array $state): ?string => $state['label'] ?? $state['key'] ?? null)
+                ->collapsed(),
+
             Select::make('standard_model')
                 ->label('Model standard (prepopulare)')
                 ->options(fn (): array => app(ContractTemplateService::class)->standardModelOptions())
+                ->default('prestari_servicii_cadru')
                 ->dehydrated(false)
                 ->searchable()
                 ->placeholder('Alegeți un model standard')
@@ -82,10 +135,12 @@ class ContractTemplateResource extends Resource
                         }
 
                         $content = app(ContractTemplateService::class)->standardModelContent((string) $model);
+                        $customFields = app(ContractTemplateService::class)->standardModelCustomFields((string) $model);
                         $set('content', $content);
+                        $set('custom_fields', $customFields);
 
                         Notification::make()
-                            ->title('Text șablon prepopulat')
+                            ->title('Text șablon și atribute prepopulate')
                             ->success()
                             ->send();
                     }),
@@ -113,7 +168,7 @@ class ContractTemplateResource extends Resource
 
             Placeholder::make('placeholder_list')
                 ->label('Placeholders disponibile')
-                ->content(fn (): HtmlString => self::renderPlaceholders())
+                ->content(fn (Get $get): HtmlString => self::renderPlaceholders($get('custom_fields')))
                 ->columnSpanFull(),
         ])->columns(3);
     }
@@ -168,9 +223,9 @@ class ContractTemplateResource extends Resource
         ];
     }
 
-    private static function renderPlaceholders(): HtmlString
+    private static function renderPlaceholders(?array $customFields = null): HtmlString
     {
-        $items = app(ContractTemplateService::class)->placeholders();
+        $items = app(ContractTemplateService::class)->placeholders($customFields ?? []);
 
         $rows = collect($items)->map(function (string $description, string $key): string {
             return '<tr class="border-b border-gray-100 dark:border-gray-700">'

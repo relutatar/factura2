@@ -3,18 +3,19 @@
 namespace App\Filament\Resources;
 
 use App\Enums\ContractStatus;
-use App\Enums\ContractType;
 use App\Filament\Resources\ContractResource\Pages;
 use App\Filament\Resources\InvoiceResource;
 use App\Models\Contract;
 use App\Models\ContractTemplate;
 use App\Services\InvoiceService;
+use Filament\Forms\Components\Component;
 use Filament\Forms\Components\DatePicker;
-use Filament\Forms\Components\Repeater;
+use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Tabs;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Toggle;
 use Filament\Forms\Form;
 use Filament\Forms\Get;
 use Filament\Notifications\Notification;
@@ -23,6 +24,7 @@ use Filament\Tables;
 use Filament\Tables\Actions\Action;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
+use Illuminate\Support\Str;
 
 class ContractResource extends Resource
 {
@@ -47,7 +49,7 @@ class ContractResource extends Resource
                         ->searchable()
                         ->required(),
                     Select::make('contract_template_id')
-                        ->label('Șablon contract')
+                        ->label('Tip contract (Șablon)')
                         ->relationship(
                             name: 'template',
                             titleAttribute: 'name',
@@ -55,19 +57,15 @@ class ContractResource extends Resource
                         )
                         ->preload()
                         ->searchable()
+                        ->live()
                         ->default(fn () => ContractTemplate::defaultTemplate()?->id)
-                        ->helperText('Template-ul va fi folosit la generarea PDF-ului de contract.'),
-                    Select::make('type')
-                        ->label('Tip contract')
-                        ->options([
-                            'mentenanta_ddd'      => 'Mentenanță DDD',
-                            'eveniment_paintball' => 'Eveniment Paintball',
-                        ])
                         ->required()
-                        ->live(),
-                    TextInput::make('title')
-                        ->label('Titlu contract')
-                        ->required(),
+                        ->helperText('Template-ul va fi folosit la generarea PDF-ului de contract.'),
+                    DatePicker::make('signed_date')
+                        ->label('Data contract (din)')
+                        ->required()
+                        ->default(today())
+                        ->displayFormat('d.m.Y'),
                     DatePicker::make('start_date')
                         ->label('Data început')
                         ->required()
@@ -79,14 +77,6 @@ class ContractResource extends Resource
                         ->label('Valoare')
                         ->numeric()
                         ->suffix('RON'),
-                    Select::make('billing_cycle')
-                        ->label('Ciclu facturare')
-                        ->options([
-                            'lunar'       => 'Lunar',
-                            'trimestrial' => 'Trimestrial',
-                            'anual'       => 'Anual',
-                            'unic'        => 'Unic',
-                        ]),
                     Select::make('status')
                         ->label('Status')
                         ->options([
@@ -101,40 +91,138 @@ class ContractResource extends Resource
                         ->rows(2),
                 ]),
 
-                Tabs\Tab::make('DDD (NOD)')
-                    ->visible(fn (Get $get) => $get('type') === 'mentenanta_ddd')
-                    ->schema([
-                        Select::make('ddd_frequency')
-                            ->label('Frecvență tratament')
-                            ->options([
-                                'lunar'       => 'Lunar',
-                                'bilunar'     => 'La 2 luni',
-                                'trimestrial' => 'Trimestrial',
-                                'semestrial'  => 'Semestrial',
-                                'anual'       => 'Anual',
-                            ]),
-                        Repeater::make('ddd_locations')
-                            ->label('Locații tratate')
-                            ->schema([
-                                TextInput::make('name')->label('Denumire locație')->required(),
-                                TextInput::make('address')->label('Adresă'),
-                                TextInput::make('treatment_type')->label('Tip tratament'),
-                            ])
-                            ->columns(3),
-                    ]),
-
-                Tabs\Tab::make('Paintball')
-                    ->visible(fn (Get $get) => $get('type') === 'eveniment_paintball')
-                    ->schema([
-                        TextInput::make('paintball_sessions')
-                            ->label('Număr ședințe')
-                            ->numeric(),
-                        TextInput::make('paintball_players')
-                            ->label('Jucători per ședință')
-                            ->numeric(),
-                    ]),
+                Tabs\Tab::make('Atribute suplimentare')
+                    ->schema(fn (Get $get): array => self::additionalAttributesSchema($get('contract_template_id'))),
             ])->columnSpanFull(),
         ]);
+    }
+
+    /**
+     * @return array<int, Component>
+     */
+    private static function additionalAttributesSchema(mixed $templateId): array
+    {
+        $templateId = is_numeric($templateId) ? (int) $templateId : null;
+
+        if (! $templateId) {
+            return [
+                Placeholder::make('additional_attributes_hint_select_template')
+                    ->label('Atribute personalizate')
+                    ->content('Selectați mai întâi un șablon contract pentru a configura atributele suplimentare.'),
+            ];
+        }
+
+        $template = ContractTemplate::query()
+            ->select(['id', 'custom_fields'])
+            ->find($templateId);
+
+        $customFields = collect($template?->custom_fields ?? [])
+            ->filter(fn (mixed $field): bool => is_array($field) && filled($field['key'] ?? null))
+            ->values();
+
+        if ($customFields->isEmpty()) {
+            return [
+                Placeholder::make('additional_attributes_hint_empty_template')
+                    ->label('Atribute personalizate')
+                    ->content('Acest șablon nu are atribute suplimentare definite.'),
+            ];
+        }
+
+        $components = $customFields
+            ->map(fn (array $field): ?Component => self::buildAdditionalAttributeField($field))
+            ->filter()
+            ->values()
+            ->all();
+
+        return $components !== [] ? $components : [
+            Placeholder::make('additional_attributes_hint_invalid_template')
+                ->label('Atribute personalizate')
+                ->content('Atributele definite pe șablon nu au o configurație validă.'),
+        ];
+    }
+
+    private static function buildAdditionalAttributeField(array $field): ?Component
+    {
+        $key = (string) Str::of((string) ($field['key'] ?? ''))
+            ->trim()
+            ->replace('-', '_')
+            ->replace(' ', '_')
+            ->replaceMatches('/[^a-zA-Z0-9_]/', '');
+
+        if ($key === '') {
+            return null;
+        }
+
+        $statePath = 'additional_attributes.' . $key;
+        $label = filled($field['label'] ?? null)
+            ? (string) $field['label']
+            : (string) Str::of($key)->replace('_', ' ')->title();
+        $required = (bool) ($field['required'] ?? false);
+        $fieldType = (string) ($field['field_type'] ?? 'text');
+
+        return match ($fieldType) {
+            'textarea' => Textarea::make($statePath)
+                ->label($label)
+                ->required($required)
+                ->rows(3)
+                ->columnSpanFull(),
+
+            'number' => TextInput::make($statePath)
+                ->label($label)
+                ->required($required)
+                ->numeric(),
+
+            'date' => DatePicker::make($statePath)
+                ->label($label)
+                ->required($required)
+                ->displayFormat('d.m.Y'),
+
+            'select' => Select::make($statePath)
+                ->label($label)
+                ->required($required)
+                ->options(self::normalizeSelectOptions($field['options'] ?? []))
+                ->searchable()
+                ->native(false),
+
+            'toggle' => Toggle::make($statePath)
+                ->label($label)
+                ->required($required),
+
+            default => TextInput::make($statePath)
+                ->label($label)
+                ->required($required),
+        };
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private static function normalizeSelectOptions(mixed $options): array
+    {
+        if (! is_array($options)) {
+            return [];
+        }
+
+        if (self::isAssociative($options)) {
+            return collect($options)
+                ->filter(fn (mixed $label, mixed $value): bool => filled($value) && filled($label))
+                ->mapWithKeys(fn (mixed $label, mixed $value): array => [(string) $value => (string) $label])
+                ->all();
+        }
+
+        return collect($options)
+            ->filter(fn (mixed $value): bool => filled($value))
+            ->mapWithKeys(fn (mixed $value): array => [(string) $value => (string) $value])
+            ->all();
+    }
+
+    private static function isAssociative(array $array): bool
+    {
+        if ($array === []) {
+            return false;
+        }
+
+        return array_keys($array) !== range(0, count($array) - 1);
     }
 
     public static function table(Table $table): Table
@@ -150,14 +238,10 @@ class ContractResource extends Resource
                     ->searchable()
                     ->sortable(),
                 TextColumn::make('template.name')
-                    ->label('Șablon')
-                    ->searchable()
-                    ->toggleable(isToggledHiddenByDefault: true),
-                TextColumn::make('type')
-                    ->label('Tip')
+                    ->label('Tip contract')
                     ->badge()
-                    ->formatStateUsing(fn (mixed $state) => $state instanceof ContractType ? $state->label() : $state)
-                    ->color(fn (mixed $state) => $state instanceof ContractType ? $state->color() : 'gray')
+                    ->color('info')
+                    ->searchable()
                     ->toggleable(),
                 TextColumn::make('status')
                     ->label('Status')

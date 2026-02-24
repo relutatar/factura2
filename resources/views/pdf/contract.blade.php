@@ -177,8 +177,9 @@
                 </td>
                 <td style="width: 42%;">
                     <div class="meta-block">
-                        <div class="contract-badge">{{ $contract->type?->label() }}</div><br>
+                        <div class="contract-badge">{{ $contract->template?->name ?? 'Contract' }}</div><br>
                         <span class="meta-label">Nr. contract:</span> {{ $contract->number }}<br>
+                        <span class="meta-label">Din data:</span> {{ $contract->signed_date?->format('d.m.Y') ?? $contract->start_date?->format('d.m.Y') }}<br>
                         <span class="meta-label">Client:</span> {{ $contract->client->name }}<br>
                         <span class="meta-label">Data început:</span> {{ $contract->start_date?->format('d.m.Y') }}<br>
                         <span class="meta-label">Data sfârșit:</span> {{ $contract->end_date?->format('d.m.Y') ?? 'nedeterminat' }}

@@ -2,9 +2,7 @@
 
 namespace App\Models;
 
-use App\Enums\BillingCycle;
 use App\Enums\ContractStatus;
-use App\Enums\ContractType;
 use App\Models\Scopes\CompanyScope;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -16,19 +14,17 @@ class Contract extends Model
     use SoftDeletes;
 
     protected $fillable = [
-        'company_id', 'client_id', 'contract_template_id', 'type', 'number', 'title',
-        'start_date', 'end_date', 'value', 'currency', 'billing_cycle',
-        'status', 'ddd_frequency', 'ddd_locations',
-        'paintball_sessions', 'paintball_players', 'notes',
+        'company_id', 'client_id', 'contract_template_id', 'number',
+        'signed_date', 'start_date', 'end_date', 'value', 'currency',
+        'status', 'additional_attributes', 'notes',
     ];
 
     protected $casts = [
-        'type'          => ContractType::class,
-        'status'        => ContractStatus::class,
-        'billing_cycle' => BillingCycle::class,
-        'ddd_locations' => 'array',
-        'start_date'    => 'date',
-        'end_date'      => 'date',
+        'status'               => ContractStatus::class,
+        'additional_attributes'=> 'array',
+        'signed_date'          => 'date',
+        'start_date'           => 'date',
+        'end_date'             => 'date',
     ];
 
     protected static function booted(): void

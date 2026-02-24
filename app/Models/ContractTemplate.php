@@ -17,13 +17,15 @@ class ContractTemplate extends Model
         'name',
         'description',
         'content',
+        'custom_fields',
         'is_default',
         'is_active',
     ];
 
     protected $casts = [
-        'is_default' => 'boolean',
-        'is_active'  => 'boolean',
+        'custom_fields' => 'array',
+        'is_default'    => 'boolean',
+        'is_active'     => 'boolean',
     ];
 
     protected static function booted(): void

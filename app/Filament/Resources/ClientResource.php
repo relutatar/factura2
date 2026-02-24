@@ -278,8 +278,9 @@ class ClientResource extends Resource
         }
 
         $contracts = $record->contracts()
+            ->with('template:id,name')
             ->latest('start_date')
-            ->get(['number', 'title', 'status', 'start_date', 'end_date', 'value', 'currency']);
+            ->get(['number', 'contract_template_id', 'status', 'start_date', 'end_date', 'value', 'currency']);
 
         if ($contracts->isEmpty()) {
             return new HtmlString('<p class="text-sm text-gray-500">Nu există contracte asociate acestui client.</p>');
@@ -287,7 +288,7 @@ class ClientResource extends Resource
 
         $rows = $contracts->map(function ($contract): string {
             $number = e($contract->number ?? '—');
-            $title = e($contract->title ?? '—');
+            $template = e($contract->template?->name ?? '—');
             $status = $contract->status instanceof ContractStatus
                 ? $contract->status->label()
                 : (string) $contract->status;
@@ -298,7 +299,7 @@ class ClientResource extends Resource
 
             return "<tr class=\"border-b border-gray-100 dark:border-gray-700\">
                 <td class=\"py-2 pr-4 text-sm\">{$number}</td>
-                <td class=\"py-2 pr-4 text-sm\">{$title}</td>
+                <td class=\"py-2 pr-4 text-sm\">{$template}</td>
                 <td class=\"py-2 pr-4 text-sm\">{$status}</td>
                 <td class=\"py-2 pr-4 text-sm\">{$startDate}</td>
                 <td class=\"py-2 pr-4 text-sm\">{$endDate}</td>
@@ -312,7 +313,7 @@ class ClientResource extends Resource
                     <thead>
                         <tr class=\"border-b-2 border-gray-200 dark:border-gray-600\">
                             <th class=\"py-2 pr-4 text-xs font-semibold uppercase text-gray-500\">Nr. contract</th>
-                            <th class=\"py-2 pr-4 text-xs font-semibold uppercase text-gray-500\">Titlu</th>
+                            <th class=\"py-2 pr-4 text-xs font-semibold uppercase text-gray-500\">Șablon contract</th>
                             <th class=\"py-2 pr-4 text-xs font-semibold uppercase text-gray-500\">Status</th>
                             <th class=\"py-2 pr-4 text-xs font-semibold uppercase text-gray-500\">Data început</th>
                             <th class=\"py-2 pr-4 text-xs font-semibold uppercase text-gray-500\">Data sfârșit</th>

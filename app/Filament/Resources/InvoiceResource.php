@@ -223,9 +223,15 @@ class InvoiceResource extends Resource
                                 ->default(function (Get $get) {
                                     $contractId = $get('../../contract_id');
                                     $contract   = $contractId ? Contract::find($contractId) : null;
-                                    return $contract?->billing_cycle instanceof BillingCycle
-                                        ? $contract->billing_cycle->value
-                                        : BillingCycle::Lunar->value;
+                                    $billingCycle = (string) data_get($contract?->additional_attributes, 'billing_cycle', '');
+                                    $allowedValues = array_map(
+                                        static fn (BillingCycle $cycle): string => $cycle->value,
+                                        BillingCycle::cases(),
+                                    );
+
+                                    return in_array($billingCycle, $allowedValues, true)
+                                        ? $billingCycle
+                                        : BillingCycle::Unic->value;
                                 })
                                 ->searchable()
                                 ->required()

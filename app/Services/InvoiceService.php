@@ -110,22 +110,28 @@ class InvoiceService
         ]);
 
         // Default first line referencing the contract
-        $contractDate = $contract->start_date
-            ? $contract->start_date->format('d.m.Y')
-            : now()->format('d.m.Y');
+        $contractDate = $contract->signed_date?->format('d.m.Y')
+            ?? $contract->start_date?->format('d.m.Y')
+            ?? now()->format('d.m.Y');
 
         $defaultVatRateId = optional(VatRate::defaultRate())->id ?? VatRate::first()?->id;
         $lineTotal        = (float) ($contract->value ?? 0);
         $vatRate          = VatRate::find($defaultVatRateId);
         $vatAmount        = $vatRate ? round($lineTotal * ((float) $vatRate->value / 100), 2) : 0;
+        $billingCycleValues = array_map(
+            static fn (BillingCycle $cycle): string => $cycle->value,
+            BillingCycle::cases(),
+        );
+        $billingCycle = (string) data_get($contract->additional_attributes, 'billing_cycle', '');
+        $unit = in_array($billingCycle, $billingCycleValues, true)
+            ? $billingCycle
+            : BillingCycle::Unic->value;
 
         InvoiceLine::create([
             'invoice_id'     => $invoice->id,
             'description'    => "Servicii conform contract nr. {$contract->number} din {$contractDate}",
             'quantity'       => 1,
-            'unit'           => $contract->billing_cycle instanceof BillingCycle
-                ? $contract->billing_cycle->value
-                : (string) ($contract->billing_cycle ?? BillingCycle::Lunar->value),
+            'unit'           => $unit,
             'unit_price'     => $lineTotal,
             'vat_rate_id'    => $defaultVatRateId,
             'vat_amount'     => $vatAmount,
