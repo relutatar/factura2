@@ -78,7 +78,11 @@ class ContractResource extends Resource
                     TextInput::make('value')
                         ->label('Valoare')
                         ->numeric()
-                        ->suffix('RON'),
+                        ->prefix('RON')
+                        ->required()
+                        ->minValue(0.01)
+                        ->rule('numeric')
+                        ->rule('gt:0'),
                     Select::make('status')
                         ->label('Status')
                         ->options([

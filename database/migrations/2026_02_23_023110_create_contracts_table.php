@@ -23,7 +23,7 @@ return new class extends Migration
             $table->date('signed_date');
             $table->date('start_date');
             $table->date('end_date')->nullable();
-            $table->decimal('value', 15, 2)->default(0);
+            $table->decimal('value', 15, 2);
             $table->string('currency', 3)->default('RON');
             $table->enum('status', ['activ', 'suspendat', 'expirat', 'reziliat'])->default('activ');
             $table->json('additional_attributes')->nullable();
