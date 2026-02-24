@@ -48,6 +48,7 @@ class ContractResource extends Resource
                         ->label('Client')
                         ->relationship('client', 'name')
                         ->searchable()
+                        ->default(fn (): ?int => request()->integer('client_id') ?: null)
                         ->required(),
                     Select::make('contract_template_id')
                         ->label('Tip contract (Șablon)')

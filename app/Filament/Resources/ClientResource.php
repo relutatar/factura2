@@ -224,13 +224,25 @@ class ClientResource extends Resource
             return new HtmlString('<p class="text-sm text-gray-500">Salvați clientul pentru a vedea contractele.</p>');
         }
 
+        $createContractUrl = e(ContractResource::getUrl('create') . '?client_id=' . $record->id);
+        $addButton = "
+            <div class=\"mb-3 flex justify-end\">
+                <a
+                    href=\"{$createContractUrl}\"
+                    class=\"inline-flex items-center rounded-md bg-primary-600 px-3 py-2 text-sm font-semibold text-white hover:bg-primary-500\"
+                >
+                    Adaugă contract
+                </a>
+            </div>
+        ";
+
         $contracts = $record->contracts()
             ->with('template:id,name')
             ->latest('start_date')
-            ->get(['number', 'contract_template_id', 'status', 'start_date', 'end_date', 'value', 'currency']);
+            ->get(['number', 'contract_template_id', 'status', 'start_date', 'end_date', 'value']);
 
         if ($contracts->isEmpty()) {
-            return new HtmlString('<p class="text-sm text-gray-500">Nu există contracte asociate acestui client.</p>');
+            return new HtmlString($addButton . '<p class="text-sm text-gray-500">Nu există contracte asociate acestui client.</p>');
         }
 
         $rows = $contracts->map(function ($contract): string {
@@ -242,7 +254,6 @@ class ClientResource extends Resource
             $startDate = $contract->start_date?->format('d.m.Y') ?? '—';
             $endDate = $contract->end_date?->format('d.m.Y') ?? '—';
             $value = number_format((float) $contract->value, 2, ',', '.');
-            $currency = e($contract->currency ?? 'RON');
 
             return "<tr class=\"border-b border-gray-100 dark:border-gray-700\">
                 <td class=\"py-2 pr-4 text-sm\">{$number}</td>
@@ -250,11 +261,12 @@ class ClientResource extends Resource
                 <td class=\"py-2 pr-4 text-sm\">{$status}</td>
                 <td class=\"py-2 pr-4 text-sm\">{$startDate}</td>
                 <td class=\"py-2 pr-4 text-sm\">{$endDate}</td>
-                <td class=\"py-2 text-sm text-right\">{$value} {$currency}</td>
+                <td class=\"py-2 text-sm text-right\">{$value} RON</td>
             </tr>";
         })->implode('');
 
         return new HtmlString("
+            {$addButton}
             <div class=\"overflow-x-auto\">
                 <table class=\"w-full text-left\">
                     <thead>
@@ -281,7 +293,7 @@ class ClientResource extends Resource
 
         $invoices = $record->invoices()
             ->latest('issue_date')
-            ->get(['id', 'full_number', 'type', 'status', 'issue_date', 'due_date', 'total', 'currency']);
+            ->get(['id', 'full_number', 'type', 'status', 'issue_date', 'due_date', 'total']);
 
         if ($invoices->isEmpty()) {
             return new HtmlString('<p class="text-sm text-gray-500">Nu există facturi asociate acestui client.</p>');
@@ -298,7 +310,6 @@ class ClientResource extends Resource
             $issueDate = $invoice->issue_date?->format('d.m.Y') ?? '—';
             $dueDate = $invoice->due_date?->format('d.m.Y') ?? '—';
             $total = number_format((float) $invoice->total, 2, ',', '.');
-            $currency = (string) ($invoice->currency ?? 'RON');
 
             return [
                 'number' => $number,
@@ -306,7 +317,7 @@ class ClientResource extends Resource
                 'status' => $status,
                 'issue_date' => $issueDate,
                 'due_date' => $dueDate,
-                'total' => $total . ' ' . $currency,
+                'total' => $total . ' RON',
                 'edit_url' => InvoiceResource::getUrl('edit', ['record' => $invoice]),
             ];
         })->all();
@@ -327,7 +338,6 @@ class ClientResource extends Resource
             $issueDate = $invoice->issue_date?->format('d.m.Y') ?? '—';
             $dueDate = $invoice->due_date?->format('d.m.Y') ?? '—';
             $total = number_format((float) $invoice->total, 2, ',', '.');
-            $currency = e($invoice->currency ?? 'RON');
 
             return "<tr class=\"cursor-pointer border-b border-gray-100 hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800\" x-on:click=\"openInvoice({$index})\">
                 <td class=\"py-2 pr-4 text-sm\">{$number}</td>
@@ -335,7 +345,7 @@ class ClientResource extends Resource
                 <td class=\"py-2 pr-4 text-sm\">{$status}</td>
                 <td class=\"py-2 pr-4 text-sm\">{$issueDate}</td>
                 <td class=\"py-2 pr-4 text-sm\">{$dueDate}</td>
-                <td class=\"py-2 text-sm text-right\">{$total} {$currency}</td>
+                <td class=\"py-2 text-sm text-right\">{$total} RON</td>
             </tr>";
         })->implode('');
 
