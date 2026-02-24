@@ -1,12 +1,16 @@
 # FACTURA2 – Invoicing Module
 
 ## Context
-Core invoicing module. Supports four document types: invoice (factura), proforma, receipt (chitanta), delivery note (aviz). Each company has its own sequential numeric series. Invoices can be created manually or auto-generated from a contract. Finalizing an invoice triggers PDF generation and stock deduction.
+Core invoicing module for fiscal invoices (factura). Invoices can be created manually or auto-generated from a contract. Finalizing an invoice triggers PDF generation and stock deduction. Number allocation is delegated to the dedicated numbering ranges module at emission time.
+
+Numbering governance (plaje/serii, continuitate, cronologie, concurenta) is handled by a dedicated module:
+- see `09-document-numbering-ranges.prompt.md`
 
 ## Prerequisites
 - `Client`, `Contract`, `Product` models must exist.
 - `StockService` must exist (see `04-products-stock.prompt.md`).
 - Queue (`database` driver) must be configured.
+- Document numbering module must be implemented (see `09-document-numbering-ranges.prompt.md`).
 
 ---
 
@@ -167,41 +171,6 @@ public static function table(Table $table): Table
 
 ### Step 3 – Create Enums
 
-**`app/Enums/InvoiceType.php`**:
-```php
-<?php
-
-namespace App\Enums;
-
-enum InvoiceType: string
-{
-    case Factura  = 'factura';
-    case Proforma = 'proforma';
-    case Chitanta = 'chitanta';
-    case Aviz     = 'aviz';
-
-    public function label(): string
-    {
-        return match($this) {
-            self::Factura  => 'Factură',
-            self::Proforma => 'Proformă',
-            self::Chitanta => 'Chitanță',
-            self::Aviz     => 'Aviz',
-        };
-    }
-
-    public function prefix(): string
-    {
-        return match($this) {
-            self::Factura  => 'F',
-            self::Proforma => 'P',
-            self::Chitanta => 'C',
-            self::Aviz     => 'A',
-        };
-    }
-}
-```
-
 **`app/Enums/InvoiceStatus.php`**:
 ```php
 <?php
@@ -276,7 +245,6 @@ Schema::create('invoices', function (Blueprint $table) {
     $table->foreignId('company_id')->constrained()->cascadeOnDelete();
     $table->foreignId('client_id')->constrained()->cascadeOnDelete();
     $table->foreignId('contract_id')->nullable()->constrained()->nullOnDelete();
-    $table->enum('type', ['factura', 'proforma', 'chitanta', 'aviz'])->default('factura');
     $table->enum('status', ['draft', 'trimisa', 'platita', 'anulata'])->default('draft');
     $table->string('series');
     $table->unsignedInteger('number');
@@ -328,7 +296,6 @@ Schema::create('invoice_lines', function (Blueprint $table) {
 namespace App\Models;
 
 use App\Enums\InvoiceStatus;
-use App\Enums\InvoiceType;
 use App\Enums\PaymentMethod;
 use App\Models\Scopes\CompanyScope;
 use Illuminate\Database\Eloquent\Model;
@@ -341,7 +308,7 @@ class Invoice extends Model
     use SoftDeletes;
 
     protected $fillable = [
-        'company_id', 'client_id', 'contract_id', 'type', 'status',
+        'company_id', 'client_id', 'contract_id', 'status',
         'series', 'number', 'full_number', 'issue_date', 'due_date',
         'delivery_date', 'subtotal', 'vat_total', 'total', 'currency',
         'payment_method', 'payment_reference', 'paid_at',
@@ -349,7 +316,6 @@ class Invoice extends Model
     ];
 
     protected $casts = [
-        'type'           => InvoiceType::class,
         'status'         => InvoiceStatus::class,
         'payment_method' => PaymentMethod::class,
         'issue_date'     => 'date',
@@ -426,7 +392,6 @@ Create `app/Services/InvoiceService.php`:
 namespace App\Services;
 
 use App\Enums\InvoiceStatus;
-use App\Enums\InvoiceType;
 use App\Jobs\GenerateInvoicePdf;
 use App\Models\Contract;
 use App\Models\Invoice;
@@ -508,7 +473,6 @@ class InvoiceService
             'company_id'     => $contract->company_id,
             'client_id'      => $contract->client_id,
             'contract_id'    => $contract->id,
-            'type'           => InvoiceType::Factura,
             'status'         => InvoiceStatus::Draft,
             'series'         => $series,
             'number'         => $number,
@@ -621,7 +585,7 @@ Create `resources/views/pdf/invoice.blade.php`:
             IBAN: {{ $invoice->company->iban }} | {{ $invoice->company->bank }}
         </td>
         <td style="border:none; text-align:right;">
-            <h2>{{ strtoupper($invoice->type->label()) }}</h2>
+            <h2>FACTURĂ</h2>
             Nr: <strong>{{ $invoice->full_number }}</strong><br>
             Data: {{ $invoice->issue_date->format('d.m.Y') }}<br>
             Scadență: {{ $invoice->due_date?->format('d.m.Y') ?? '—' }}
@@ -695,8 +659,6 @@ protected static ?string $navigationIcon   = 'heroicon-o-receipt-percent';
 ->columns([
     TextColumn::make('full_number')->label('Număr')->searchable()->sortable(),
     TextColumn::make('client.name')->label('Client')->searchable()->sortable(),
-    TextColumn::make('type')->label('Tip')->badge()
-        ->formatStateUsing(fn ($state) => $state instanceof InvoiceType ? $state->label() : $state),
     TextColumn::make('status')->label('Status')->badge()
         ->formatStateUsing(fn ($state) => $state instanceof InvoiceStatus ? $state->label() : $state)
         ->color(fn ($state) => $state instanceof InvoiceStatus ? $state->color() : 'gray'),
@@ -762,7 +724,7 @@ protected static ?string $navigationIcon   = 'heroicon-o-receipt-percent';
 
 ## Acceptance Criteria
 - [x] `docker compose exec app php artisan migrate` creates `invoices` and `invoice_lines` tables.
-- [x] Invoice numbering is sequential per company/series with no gaps (e.g. `NOD-2026-0001`).
+- [x] Invoice emission consumes `DocumentNumberService` for numbering reservation and chronology enforcement.
 - [x] Totals are always computed from lines — never entered manually.
 - [x] Finalizing a draft invoice dispatches `GenerateInvoicePdf` job and deducts stock.
 - [x] PDF is saved to `storage/app/invoices/{company_id}/` and linked to the invoice.
@@ -777,4 +739,4 @@ protected static ?string $navigationIcon   = 'heroicon-o-receipt-percent';
 | Date | Implemented | Pending | Blockers / Notes |
 |---|---|---|---|
 | — | — | Everything | Not started |
-| 2026-02-23 | InvoiceType/InvoiceStatus/PaymentMethod enums, Invoice+InvoiceLine models, alter-invoices migration (added full_number/subtotal/vat_total/total/payment_method etc.), invoice_lines migration, InvoiceService (nextNumber, recalculateTotals, transition, createFromContract), PdfService (generateInvoice), GenerateInvoicePdf job, invoice.blade.php PDF template, full InvoiceResource (tabs form, repeater lines, status badge table, 5 table actions), PDF download route | — | ✅ Complete |
+| 2026-02-23 | InvoiceStatus/PaymentMethod enums, Invoice+InvoiceLine models, alter-invoices migration (added full_number/subtotal/vat_total/total/payment_method etc.), invoice_lines migration, InvoiceService (nextNumber, recalculateTotals, transition, createFromContract), PdfService (generateInvoice), GenerateInvoicePdf job, invoice.blade.php PDF template, full InvoiceResource (tabs form, repeater lines, status badge table, 5 table actions), PDF download route | — | ✅ Complete |

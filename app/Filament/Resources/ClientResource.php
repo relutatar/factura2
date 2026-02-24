@@ -5,7 +5,6 @@ namespace App\Filament\Resources;
 use App\Enums\ClientType;
 use App\Enums\ContractStatus;
 use App\Enums\InvoiceStatus;
-use App\Enums\InvoiceType;
 use App\Filament\Resources\ClientResource\Pages;
 use App\Filament\Resources\ClientResource\RelationManagers;
 use App\Models\Client;
@@ -293,7 +292,7 @@ class ClientResource extends Resource
 
         $invoices = $record->invoices()
             ->latest('issue_date')
-            ->get(['id', 'full_number', 'type', 'status', 'issue_date', 'due_date', 'total']);
+            ->get(['id', 'full_number', 'status', 'issue_date', 'due_date', 'total']);
 
         if ($invoices->isEmpty()) {
             return new HtmlString('<p class="text-sm text-gray-500">Nu există facturi asociate acestui client.</p>');
@@ -301,9 +300,6 @@ class ClientResource extends Resource
 
         $modalInvoices = $invoices->values()->map(function ($invoice): array {
             $number = (string) ($invoice->full_number ?: ('#' . $invoice->id));
-            $type = $invoice->type instanceof InvoiceType
-                ? $invoice->type->label()
-                : (string) $invoice->type;
             $status = $invoice->status instanceof InvoiceStatus
                 ? $invoice->status->label()
                 : (string) $invoice->status;
@@ -313,7 +309,6 @@ class ClientResource extends Resource
 
             return [
                 'number' => $number,
-                'type' => $type,
                 'status' => $status,
                 'issue_date' => $issueDate,
                 'due_date' => $dueDate,
@@ -329,9 +324,6 @@ class ClientResource extends Resource
 
         $rows = $invoices->values()->map(function ($invoice, int $index): string {
             $number = e($invoice->full_number ?: ('#' . $invoice->id));
-            $type = $invoice->type instanceof InvoiceType
-                ? $invoice->type->label()
-                : (string) $invoice->type;
             $status = $invoice->status instanceof InvoiceStatus
                 ? $invoice->status->label()
                 : (string) $invoice->status;
@@ -341,7 +333,6 @@ class ClientResource extends Resource
 
             return "<tr class=\"cursor-pointer border-b border-gray-100 hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800\" x-on:click=\"openInvoice({$index})\">
                 <td class=\"py-2 pr-4 text-sm\">{$number}</td>
-                <td class=\"py-2 pr-4 text-sm\">{$type}</td>
                 <td class=\"py-2 pr-4 text-sm\">{$status}</td>
                 <td class=\"py-2 pr-4 text-sm\">{$issueDate}</td>
                 <td class=\"py-2 pr-4 text-sm\">{$dueDate}</td>
@@ -367,7 +358,6 @@ class ClientResource extends Resource
                     <thead>
                         <tr class=\"border-b-2 border-gray-200 dark:border-gray-600\">
                             <th class=\"py-2 pr-4 text-xs font-semibold uppercase text-gray-500\">Număr</th>
-                            <th class=\"py-2 pr-4 text-xs font-semibold uppercase text-gray-500\">Tip</th>
                             <th class=\"py-2 pr-4 text-xs font-semibold uppercase text-gray-500\">Status</th>
                             <th class=\"py-2 pr-4 text-xs font-semibold uppercase text-gray-500\">Data emiterii</th>
                             <th class=\"py-2 pr-4 text-xs font-semibold uppercase text-gray-500\">Scadență</th>
@@ -399,10 +389,6 @@ class ClientResource extends Resource
                         </div>
 
                         <div class=\"grid grid-cols-1 gap-3 sm:grid-cols-2\">
-                            <div class=\"rounded-lg border border-gray-200 p-3 dark:border-gray-700\">
-                                <div class=\"text-xs uppercase text-gray-500\">Tip</div>
-                                <div class=\"text-sm font-medium text-gray-900 dark:text-gray-100\" x-text=\"invoice ? invoice.type : '—'\"></div>
-                            </div>
                             <div class=\"rounded-lg border border-gray-200 p-3 dark:border-gray-700\">
                                 <div class=\"text-xs uppercase text-gray-500\">Status</div>
                                 <div class=\"text-sm font-medium text-gray-900 dark:text-gray-100\" x-text=\"invoice ? invoice.status : '—'\"></div>

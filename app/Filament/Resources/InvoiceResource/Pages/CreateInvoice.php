@@ -3,7 +3,6 @@
 namespace App\Filament\Resources\InvoiceResource\Pages;
 
 use App\Filament\Resources\InvoiceResource;
-use App\Enums\InvoiceType;
 use App\Services\InvoiceService;
 use Filament\Resources\Pages\CreateRecord;
 
@@ -25,7 +24,7 @@ class CreateInvoice extends CreateRecord
             } else {
                 $numbering = $svc->reserveNextNumber(
                     $invoice->company_id,
-                    $invoice->type ?? InvoiceType::Factura,
+                    'factura',
                     $invoice->issue_date
                 );
 

@@ -4,7 +4,6 @@ namespace App\Services;
 
 use App\Enums\BillingCycle;
 use App\Enums\InvoiceStatus;
-use App\Enums\InvoiceType;
 use App\Jobs\GenerateInvoicePdf;
 use App\Models\Contract;
 use App\Models\Invoice;
@@ -18,11 +17,11 @@ class InvoiceService
 {
     public function reserveNextNumber(
         int $companyId,
-        InvoiceType|string $documentType,
+        string $documentType,
         ?CarbonInterface $issuedAt = null
     ): array {
         $issuedAt = $issuedAt ?? now();
-        $type = $documentType instanceof InvoiceType ? $documentType->value : $documentType;
+        $type = $documentType;
         $year = (int) $issuedAt->year;
 
         return DB::transaction(function () use ($companyId, $type, $year): array {
@@ -116,13 +115,12 @@ class InvoiceService
     public function createFromContract(Contract $contract): Invoice
     {
         $company = $contract->company()->withoutGlobalScopes()->find($contract->company_id);
-        $numbering = $this->reserveNextNumber($company->id, InvoiceType::Factura, now());
+        $numbering = $this->reserveNextNumber($company->id, 'factura', now());
 
         $invoice = Invoice::create([
             'company_id'     => $contract->company_id,
             'client_id'      => $contract->client_id,
             'contract_id'    => $contract->id,
-            'type'           => InvoiceType::Factura,
             'status'         => InvoiceStatus::Draft,
             'series'         => $numbering['series'],
             'number'         => $numbering['number'],

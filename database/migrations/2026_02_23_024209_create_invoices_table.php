@@ -16,7 +16,6 @@ return new class extends Migration
             $table->foreignId('company_id')->constrained()->cascadeOnDelete();
             $table->foreignId('client_id')->constrained()->cascadeOnDelete();
             $table->foreignId('contract_id')->nullable()->constrained()->nullOnDelete();
-            $table->string('type')->default('factura'); // factura, proforma, chitanta, aviz
             $table->string('status')->default('draft'); // draft, trimisa, platita, anulata
             $table->string('series')->nullable();
             $table->unsignedInteger('number')->nullable();

@@ -3,7 +3,6 @@
 namespace App\Models;
 
 use App\Enums\InvoiceStatus;
-use App\Enums\InvoiceType;
 use App\Enums\PaymentMethod;
 use App\Models\Scopes\CompanyScope;
 use Illuminate\Database\Eloquent\Model;
@@ -16,7 +15,7 @@ class Invoice extends Model
     use SoftDeletes;
 
     protected $fillable = [
-        'company_id', 'client_id', 'contract_id', 'type', 'status',
+        'company_id', 'client_id', 'contract_id', 'status',
         'series', 'number', 'full_number', 'issue_date', 'due_date',
         'delivery_date', 'subtotal', 'vat_total', 'total', 'currency',
         'payment_method', 'payment_reference', 'paid_at',
@@ -24,7 +23,6 @@ class Invoice extends Model
     ];
 
     protected $casts = [
-        'type'           => InvoiceType::class,
         'status'         => InvoiceStatus::class,
         'payment_method' => PaymentMethod::class,
         'issue_date'     => 'date',

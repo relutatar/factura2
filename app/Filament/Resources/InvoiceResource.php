@@ -4,7 +4,6 @@ namespace App\Filament\Resources;
 
 use App\Enums\ClientType;
 use App\Enums\InvoiceStatus;
-use App\Enums\InvoiceType;
 use App\Enums\BillingCycle;
 use App\Filament\Resources\InvoiceResource\Pages;
 use App\Jobs\SubmitEfactura;
@@ -65,14 +64,6 @@ class InvoiceResource extends Resource
                         ->preload()
                         ->nullable()
                         ->live(),
-
-                    Select::make('type')
-                        ->label('Tip document')
-                        ->options(collect(InvoiceType::cases())->mapWithKeys(
-                            fn (InvoiceType $t) => [$t->value => $t->label()]
-                        ))
-                        ->required()
-                        ->default(InvoiceType::Factura->value),
 
                     Select::make('status')
                         ->label('Status')
@@ -343,13 +334,6 @@ class InvoiceResource extends Resource
                     ->label('Client')
                     ->searchable()
                     ->sortable(),
-
-                TextColumn::make('type')
-                    ->label('Tip')
-                    ->badge()
-                    ->formatStateUsing(fn (mixed $state) => $state instanceof InvoiceType ? $state->label() : $state)
-                    ->color('info')
-                    ->toggleable(),
 
                 TextColumn::make('status')
                     ->label('Status')
