@@ -14,6 +14,11 @@ return new class extends Migration
         Schema::create('companies', function (Blueprint $table) {
             $table->id();
             $table->string('name');
+            $table->foreignId('company_type_id')
+                ->nullable()
+                ->constrained('company_types')
+                ->nullOnDelete();
+            $table->string('administrator');
             $table->string('cif')->unique();
             $table->string('reg_com')->nullable();
             $table->text('address')->nullable();
@@ -22,7 +27,10 @@ return new class extends Migration
             $table->string('iban')->nullable();
             $table->string('bank')->nullable();
             $table->string('logo')->nullable();
-            $table->string('invoice_prefix', 10);
+            $table->string('efactura_certificate_path')->nullable();
+            $table->string('efactura_certificate_password')->nullable();
+            $table->boolean('efactura_test_mode')->default(true);
+            $table->string('efactura_cif')->nullable();
             $table->json('efactura_settings')->nullable();
             $table->timestamps();
             $table->softDeletes();

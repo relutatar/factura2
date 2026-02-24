@@ -15,19 +15,18 @@ return new class extends Migration
             $table->id();
             $table->foreignId('company_id')->constrained()->cascadeOnDelete();
             $table->foreignId('client_id')->constrained()->cascadeOnDelete();
-            $table->enum('type', ['mentenanta_ddd', 'eveniment_paintball']);
+            $table->foreignId('contract_template_id')
+                ->nullable()
+                ->constrained('contract_templates')
+                ->nullOnDelete();
             $table->string('number');
-            $table->string('title');
+            $table->date('signed_date');
             $table->date('start_date');
             $table->date('end_date')->nullable();
             $table->decimal('value', 15, 2)->default(0);
             $table->string('currency', 3)->default('RON');
-            $table->enum('billing_cycle', ['lunar', 'trimestrial', 'anual', 'unic'])->default('lunar');
             $table->enum('status', ['activ', 'suspendat', 'expirat', 'reziliat'])->default('activ');
-            $table->string('ddd_frequency')->nullable();
-            $table->json('ddd_locations')->nullable();
-            $table->unsignedInteger('paintball_sessions')->nullable();
-            $table->unsignedInteger('paintball_players')->nullable();
+            $table->json('additional_attributes')->nullable();
             $table->text('notes')->nullable();
             $table->timestamps();
             $table->softDeletes();
