@@ -42,6 +42,7 @@ class ContractResource extends Resource
                 Tabs\Tab::make('General')->schema([
                     TextInput::make('number')
                         ->label('Număr contract')
+                        ->default(fn (): string => self::suggestNextContractNumber())
                         ->required(),
                     Select::make('client_id')
                         ->label('Client')
@@ -223,6 +224,27 @@ class ContractResource extends Resource
         }
 
         return array_keys($array) !== range(0, count($array) - 1);
+    }
+
+    private static function suggestNextContractNumber(): string
+    {
+        $lastNumber = (string) Contract::query()
+            ->latest('id')
+            ->value('number');
+
+        if ($lastNumber === '') {
+            return '1';
+        }
+
+        if (preg_match('/^(.*?)(\d+)$/', $lastNumber, $matches) !== 1) {
+            return '1';
+        }
+
+        $prefix = $matches[1];
+        $number = $matches[2];
+        $nextNumber = (string) (((int) $number) + 1);
+
+        return $prefix . str_pad($nextNumber, strlen($number), '0', STR_PAD_LEFT);
     }
 
     public static function table(Table $table): Table
