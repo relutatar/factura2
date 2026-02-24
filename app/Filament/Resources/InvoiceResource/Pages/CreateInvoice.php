@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\InvoiceResource\Pages;
 
 use App\Filament\Resources\InvoiceResource;
+use App\Enums\InvoiceType;
 use App\Services\InvoiceService;
 use Filament\Resources\Pages\CreateRecord;
 
@@ -17,16 +18,19 @@ class CreateInvoice extends CreateRecord
 
         // Auto-assign series/number/full_number if not already set
         if (empty($invoice->full_number)) {
-            $company = $invoice->company()->withoutGlobalScopes()->find($invoice->company_id);
-            $year    = now()->year;
-            $series  = $invoice->series ?? (($company->invoice_prefix ?? 'F') . '-' . $year);
-            $number  = $invoice->number ?? $svc->nextNumber($invoice->company_id, $series);
+            if (! empty($invoice->series) && ! empty($invoice->number)) {
+                $invoice->update([
+                    'full_number' => $invoice->series . '-' . str_pad((string) $invoice->number, 4, '0', STR_PAD_LEFT),
+                ]);
+            } else {
+                $numbering = $svc->reserveNextNumber(
+                    $invoice->company_id,
+                    $invoice->type ?? InvoiceType::Factura,
+                    $invoice->issue_date
+                );
 
-            $invoice->update([
-                'series'      => $series,
-                'number'      => $number,
-                'full_number' => $series . '-' . str_pad((string) $number, 4, '0', STR_PAD_LEFT),
-            ]);
+                $invoice->update($numbering);
+            }
         }
 
         $svc->recalculateTotals($invoice);

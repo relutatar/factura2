@@ -9,23 +9,48 @@ use App\Jobs\GenerateInvoicePdf;
 use App\Models\Contract;
 use App\Models\Invoice;
 use App\Models\InvoiceLine;
+use App\Models\NumberingRange;
 use App\Models\VatRate;
+use Carbon\CarbonInterface;
+use Illuminate\Support\Facades\DB;
 
 class InvoiceService
 {
-    /**
-     * Get the next sequential invoice number for a given company and series.
-     * Uses a DB lock to prevent duplicates under concurrent requests.
-     */
-    public function nextNumber(int $companyId, string $series): int
-    {
-        $max = Invoice::withoutGlobalScopes()
-            ->where('company_id', $companyId)
-            ->where('series', $series)
-            ->lockForUpdate()
-            ->max('number');
+    public function reserveNextNumber(
+        int $companyId,
+        InvoiceType|string $documentType,
+        ?CarbonInterface $issuedAt = null
+    ): array {
+        $issuedAt = $issuedAt ?? now();
+        $type = $documentType instanceof InvoiceType ? $documentType->value : $documentType;
+        $year = (int) $issuedAt->year;
 
-        return ($max ?? 0) + 1;
+        return DB::transaction(function () use ($companyId, $type, $year): array {
+            $range = NumberingRange::withoutGlobalScopes()
+                ->where('company_id', $companyId)
+                ->where('document_type', $type)
+                ->where('fiscal_year', $year)
+                ->where('is_active', true)
+                ->lockForUpdate()
+                ->first();
+
+            if (! $range) {
+                throw new \RuntimeException("Nu există plajă activă pentru {$type} în anul {$year}.");
+            }
+
+            if ($range->next_number > $range->end_number) {
+                throw new \RuntimeException("Plaja de numerotare {$range->series} este epuizată.");
+            }
+
+            $number = (int) $range->next_number;
+            $range->update(['next_number' => $number + 1]);
+
+            return [
+                'series'      => $range->series,
+                'number'      => $number,
+                'full_number' => $range->series . '-' . str_pad((string) $number, 4, '0', STR_PAD_LEFT),
+            ];
+        });
     }
 
     /**
@@ -91,9 +116,7 @@ class InvoiceService
     public function createFromContract(Contract $contract): Invoice
     {
         $company = $contract->company()->withoutGlobalScopes()->find($contract->company_id);
-        $year    = now()->year;
-        $series  = ($company->invoice_prefix ?? 'F') . '-' . $year;
-        $number  = $this->nextNumber($company->id, $series);
+        $numbering = $this->reserveNextNumber($company->id, InvoiceType::Factura, now());
 
         $invoice = Invoice::create([
             'company_id'     => $contract->company_id,
@@ -101,9 +124,9 @@ class InvoiceService
             'contract_id'    => $contract->id,
             'type'           => InvoiceType::Factura,
             'status'         => InvoiceStatus::Draft,
-            'series'         => $series,
-            'number'         => $number,
-            'full_number'    => $series . '-' . str_pad((string) $number, 4, '0', STR_PAD_LEFT),
+            'series'         => $numbering['series'],
+            'number'         => $numbering['number'],
+            'full_number'    => $numbering['full_number'],
             'issue_date'     => now()->toDateString(),
             'due_date'       => now()->addDays(30)->toDateString(),
             'currency'       => 'RON',
