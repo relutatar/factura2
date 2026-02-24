@@ -2,7 +2,6 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
 class CompanySeeder extends Seeder
@@ -37,15 +36,15 @@ class CompanySeeder extends Seeder
 
         // ── 2. Seed companies ────────────────────────────────────────────────
         \App\Models\Company::updateOrCreate(
-            ['cif' => '27864858'],
+            ['cif' => 'RO27864858'],
             [
                 'name'            => 'NOD CONSULTING SRL',
                 'company_type_id' => $typeDdd->id,
+                'administrator'   => 'Claudia Oprea',
                 'reg_com'         => 'J2010000868267',
                 'address'         => 'Str. Vișeului 6, Ap. 1',
                 'city'            => 'Târgu Mureș',
                 'county'          => 'Mureș',
-                'invoice_prefix'  => 'NOD',
             ]
         );
 
@@ -54,11 +53,11 @@ class CompanySeeder extends Seeder
             [
                 'name'            => 'PAINTBALL MUREȘ SRL',
                 'company_type_id' => $typePaintball->id,
+                'administrator'   => 'Relu Tătar',
                 'reg_com'         => 'J26/1106/2016',
                 'address'         => 'Sat Ivănești 75',
                 'city'            => 'Ivănești',
                 'county'          => 'Mureș',
-                'invoice_prefix'  => 'PBM',
             ]
         );
     }

@@ -45,6 +45,12 @@ class CompanyResource extends Resource
                         ->maxLength(255)
                         ->columnSpan(2),
 
+                    TextInput::make('administrator')
+                        ->label('Administrator')
+                        ->required()
+                        ->maxLength(255)
+                        ->columnSpan(1),
+
                     Select::make('company_type_id')
                         ->label('Tip companie')
                         ->options(CompanyType::selectOptions())
@@ -52,12 +58,6 @@ class CompanyResource extends Resource
                         ->nullable()
                         ->columnSpan(1),
 
-                    TextInput::make('invoice_prefix')
-                        ->label('Prefix facturi')
-                        ->required()
-                        ->maxLength(10)
-                        ->helperText('Ex: NOD, PBM')
-                        ->columnSpan(1),
                 ])->columns(4),
 
             Section::make('Date juridice')
@@ -196,6 +196,10 @@ class CompanyResource extends Resource
                     ->badge()
                     ->color(fn (?Company $record) => $record?->companyType?->color ?? 'gray'),
 
+                TextColumn::make('administrator')
+                    ->label('Administrator')
+                    ->searchable(),
+
                 TextColumn::make('cif')
                     ->label('CIF')
                     ->searchable()
@@ -206,11 +210,6 @@ class CompanyResource extends Resource
                     ->searchable()
                     ->toggleable(isToggledHiddenByDefault: true),
 
-                TextColumn::make('invoice_prefix')
-                    ->label('Prefix')
-                    ->badge()
-                    ->color('info')
-                    ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->defaultSort('name')
             ->actions([

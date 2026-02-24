@@ -12,8 +12,8 @@ class Company extends Model
     use SoftDeletes;
 
     protected $fillable = [
-        'name', 'company_type_id', 'cif', 'reg_com', 'address', 'city', 'county',
-        'iban', 'bank', 'logo', 'invoice_prefix', 'efactura_settings',
+        'name', 'company_type_id', 'administrator', 'cif', 'reg_com', 'address', 'city', 'county',
+        'iban', 'bank', 'logo', 'efactura_settings',
         'efactura_certificate_path', 'efactura_certificate_password',
         'efactura_test_mode', 'efactura_cif',
     ];

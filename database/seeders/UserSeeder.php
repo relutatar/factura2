@@ -21,14 +21,14 @@ class UserSeeder extends Seeder
 
         // One regular user per company
         $companyUsers = [
-            'nod'       => ['name' => 'User NOD',       'email' => 'user@nod.ro'],
-            'paintball' => ['name' => 'User Paintball',  'email' => 'user@paintball.ro'],
+            '27864858' => ['name' => 'User NOD',      'email' => 'user@nod.ro'],
+            '36408451' => ['name' => 'User Paintball','email' => 'user@paintball.ro'],
         ];
 
         $companies = Company::withoutGlobalScopes()->get();
 
-        foreach ($companies as $index => $company) {
-            $userData = array_values($companyUsers)[$index] ?? null;
+        foreach ($companies as $company) {
+            $userData = $companyUsers[$company->cif] ?? null;
             if (! $userData) {
                 continue;
             }
@@ -41,7 +41,7 @@ class UserSeeder extends Seeder
                 ]
             );
 
-            // Assign only their own company (idempotent)
+            // Assign only their own company (idempotent).
             $user->companies()->syncWithoutDetaching([$company->id]);
         }
     }
