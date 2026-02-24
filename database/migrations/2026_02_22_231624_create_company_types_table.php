@@ -14,7 +14,6 @@ return new class extends Migration
         Schema::create('company_types', function (Blueprint $table) {
             $table->id();
             $table->string('name')->unique();       // e.g. "DDD (Pest Control)"
-            $table->string('slug')->unique();       // e.g. "ddd"
             $table->text('description')->nullable();
             $table->string('color', 30)->default('gray'); // Filament badge color
             $table->boolean('is_active')->default(true);

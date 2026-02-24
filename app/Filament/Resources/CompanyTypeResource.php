@@ -9,7 +9,6 @@ use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Forms\Form;
-use Filament\Forms\Set;
 use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Tables\Actions\DeleteAction;
@@ -17,7 +16,6 @@ use Filament\Tables\Actions\EditAction;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
-use Illuminate\Support\Str;
 
 class CompanyTypeResource extends Resource
 {
@@ -39,20 +37,6 @@ class CompanyTypeResource extends Resource
                 ->label('Denumire')
                 ->required()
                 ->maxLength(100)
-                ->live(onBlur: true)
-                ->afterStateUpdated(function (string $operation, $state, Set $set) {
-                    if ($operation === 'create') {
-                        $set('slug', Str::slug($state));
-                    }
-                })
-                ->columnSpan(1),
-
-            TextInput::make('slug')
-                ->label('Slug (identificator unic)')
-                ->required()
-                ->unique(CompanyType::class, 'slug', ignoreRecord: true)
-                ->maxLength(50)
-                ->helperText('Generat automat din denumire. Nu modificați dacă există companii asociate.')
                 ->columnSpan(1),
 
             Textarea::make('description')
@@ -99,11 +83,6 @@ class CompanyTypeResource extends Resource
                     ->badge()
                     ->color(fn (CompanyType $record) => $record->color)
                     ->searchable()
-                    ->sortable(),
-
-                TextColumn::make('slug')
-                    ->label('Slug')
-                    ->copyable()
                     ->sortable(),
 
                 TextColumn::make('description')

@@ -12,7 +12,6 @@ class CompanyType extends Model
 
     protected $fillable = [
         'name',
-        'slug',
         'description',
         'color',
         'is_active',

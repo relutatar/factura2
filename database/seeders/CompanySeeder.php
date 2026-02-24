@@ -13,9 +13,8 @@ class CompanySeeder extends Seeder
     {
         // ── 1. Seed company types ────────────────────────────────────────────
         $typeDdd = \App\Models\CompanyType::updateOrCreate(
-            ['slug' => 'ddd'],
+            ['name' => 'DDD'],
             [
-                'name'        => 'DDD (Pest Control)',
                 'description' => 'Servicii de dezinfecție, dezinsecție și deratizare.',
                 'color'       => 'success',
                 'is_active'   => true,
@@ -24,9 +23,8 @@ class CompanySeeder extends Seeder
         );
 
         $typePaintball = \App\Models\CompanyType::updateOrCreate(
-            ['slug' => 'paintball'],
+            ['name' => 'Paintball'],
             [
-                'name'        => 'Paintball & Leisure',
                 'description' => 'Evenimente paintball și activități recreative.',
                 'color'       => 'warning',
                 'is_active'   => true,
