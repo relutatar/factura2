@@ -16,7 +16,7 @@ class Contract extends Model
     use SoftDeletes;
 
     protected $fillable = [
-        'company_id', 'client_id', 'type', 'number', 'title',
+        'company_id', 'client_id', 'contract_template_id', 'type', 'number', 'title',
         'start_date', 'end_date', 'value', 'currency', 'billing_cycle',
         'status', 'ddd_frequency', 'ddd_locations',
         'paintball_sessions', 'paintball_players', 'notes',
@@ -50,6 +50,11 @@ class Contract extends Model
     public function company(): BelongsTo
     {
         return $this->belongsTo(Company::class);
+    }
+
+    public function template(): BelongsTo
+    {
+        return $this->belongsTo(ContractTemplate::class, 'contract_template_id');
     }
 
     public function invoices(): HasMany

@@ -24,7 +24,7 @@ class PdfService
         $path = "{$dir}/{$invoice->full_number}.pdf";
 
         Pdf::loadView('pdf.invoice', compact('invoice'))
-            ->setPaper('a4')
+            ->setPaper('a4', 'portrait')
             ->save($path);
 
         Invoice::withoutGlobalScopes()
@@ -40,7 +40,7 @@ class PdfService
      */
     public function generateContract(Contract $contract): string
     {
-        $contract->loadMissing('company', 'client');
+        $contract->loadMissing(['company', 'client', 'template']);
 
         $dir = storage_path('app/contracts');
         if (! is_dir($dir)) {
@@ -48,9 +48,10 @@ class PdfService
         }
 
         $path = "{$dir}/{$contract->id}.pdf";
+        $content = app(ContractTemplateService::class)->render($contract);
 
-        Pdf::loadView('pdf.contract', compact('contract'))
-            ->setPaper('a4')
+        Pdf::loadView('pdf.contract', compact('contract', 'content'))
+            ->setPaper('a4', 'portrait')
             ->save($path);
 
         return $path;

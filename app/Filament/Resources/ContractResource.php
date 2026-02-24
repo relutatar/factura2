@@ -7,6 +7,7 @@ use App\Enums\ContractType;
 use App\Filament\Resources\ContractResource\Pages;
 use App\Filament\Resources\InvoiceResource;
 use App\Models\Contract;
+use App\Models\ContractTemplate;
 use App\Services\InvoiceService;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Repeater;
@@ -45,6 +46,17 @@ class ContractResource extends Resource
                         ->relationship('client', 'name')
                         ->searchable()
                         ->required(),
+                    Select::make('contract_template_id')
+                        ->label('Șablon contract')
+                        ->relationship(
+                            name: 'template',
+                            titleAttribute: 'name',
+                            modifyQueryUsing: fn ($query) => $query->where('is_active', true)->orderBy('is_default', 'desc')->orderBy('name')
+                        )
+                        ->preload()
+                        ->searchable()
+                        ->default(fn () => ContractTemplate::defaultTemplate()?->id)
+                        ->helperText('Template-ul va fi folosit la generarea PDF-ului de contract.'),
                     Select::make('type')
                         ->label('Tip contract')
                         ->options([
@@ -137,6 +149,10 @@ class ContractResource extends Resource
                     ->label('Client')
                     ->searchable()
                     ->sortable(),
+                TextColumn::make('template.name')
+                    ->label('Șablon')
+                    ->searchable()
+                    ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('type')
                     ->label('Tip')
                     ->badge()
@@ -190,6 +206,11 @@ class ContractResource extends Resource
                         Notification::make()->title('Factură creată cu succes')->success()->send();
                         return redirect(InvoiceResource::getUrl('edit', ['record' => $invoice]));
                     }),
+                Action::make('descarca_pdf_contract')
+                    ->label('Descarcă PDF')
+                    ->icon('heroicon-o-arrow-down-tray')
+                    ->url(fn (Contract $record) => route('contracts.pdf', $record))
+                    ->openUrlInNewTab(),
                 Tables\Actions\DeleteAction::make()->label('Șterge'),
             ])
             ->bulkActions([
