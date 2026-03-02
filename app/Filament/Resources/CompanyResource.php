@@ -2,11 +2,13 @@
 
 namespace App\Filament\Resources;
 
+use App\Enums\CompanyModule;
 use App\Filament\Resources\CompanyResource\Pages;
 use App\Models\Company;
 use App\Models\CompanyType;
 use App\Services\AnafService;
 use Filament\Forms\Components\Actions\Action as FormAction;
+use Filament\Forms\Components\CheckboxList;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Section;
 use Filament\Forms\Components\Select;
@@ -163,6 +165,16 @@ class CompanyResource extends Resource
                         ->maxLength(255)
                         ->columnSpanFull(),
                 ])->columns(2)->collapsible(),
+
+            Section::make('Module active')
+                ->description('Selectați modulele disponibile pentru această firmă. Modulele inactive nu apar în navigare.')
+                ->schema([
+                    CheckboxList::make('modules')
+                        ->label('Module')
+                        ->options(CompanyModule::options())
+                        ->columns(2)
+                        ->columnSpanFull(),
+                ])->collapsible(),
         ]);
     }
 

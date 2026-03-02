@@ -207,13 +207,13 @@ Nu este nevoie de cod suplimentar – Filament ascunde automat grupurile de navi
 ---
 
 ## Acceptance Criteria
-- [ ] Coloana `modules` (JSON) prezentă pe tabela `companies`.
-- [ ] `Company::hasModule(string $key): bool` funcționează corect.
-- [ ] `CompanyModule` enum definit cu 5 valori și labels în română.
-- [ ] `CompanyResource` permite editarea modulelor cu `CheckboxList`.
-- [ ] Seeder actualizat: NOD cu 4 module, PAINTBALL cu 2 module.
-- [ ] Resursele cu `canAccess()` conditionat nu apar în navigare pentru firma ce nu are modulul activ.
-- [ ] Grupurile de navigare fără resurse accesibile dispar automat.
+- [x] Coloana `modules` (JSON) prezentă pe tabela `companies`.
+- [x] `Company::hasModule(string $key): bool` funcționează corect.
+- [x] `CompanyModule` enum definit cu 5 valori și labels în română.
+- [x] `CompanyResource` permite editarea modulelor cu `CheckboxList`.
+- [x] Seeder actualizat: NOD cu 4 module, PAINTBALL cu 2 module.
+- [x] Resursele cu `canAccess()` conditionat nu apar în navigare pentru firma ce nu are modulul activ.
+- [x] Grupurile de navigare fără resurse accesibile dispar automat.
 
 ---
 
@@ -222,3 +222,4 @@ Nu este nevoie de cod suplimentar – Filament ascunde automat grupurile de navi
 | Date | Implemented | Pending | Blockers / Notes |
 |---|---|---|---|
 | — | — | Everything | Not started |
+| 2026-03-02 | Migration `add_modules_to_companies_table` (JSON column), `CompanyModule` enum (5 valori + labels + options()), `Company::hasModule()` + cast `modules => array`, `Company::$fillable` actualizat, `CompanyResource` form: secțiune `Module active` cu `CheckboxList`, `ProductResource::canAccess()` → modul `stocuri`, `StockMovementResource::canAccess()` → modul `stocuri`, `CompanySeeder` actualizat cu module pentru ambele firme, migration + seeder rulate. | — | ✅ Complete |

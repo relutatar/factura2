@@ -182,4 +182,10 @@ class ProductResource extends Resource
             'edit'   => Pages\EditProduct::route('/{record}/edit'),
         ];
     }
+
+    public static function canAccess(): bool
+    {
+        $company = \App\Models\Company::find(session('active_company_id'));
+        return $company?->hasModule('stocuri') ?? false;
+    }
 }

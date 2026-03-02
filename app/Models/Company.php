@@ -14,7 +14,7 @@ class Company extends Model
 
     protected $fillable = [
         'name', 'company_type_id', 'administrator', 'cif', 'reg_com', 'address', 'city', 'county',
-        'iban', 'bank', 'logo', 'efactura_settings',
+        'iban', 'bank', 'logo', 'modules', 'efactura_settings',
         'efactura_certificate_path', 'efactura_certificate_password',
         'efactura_test_mode', 'efactura_cif',
     ];
@@ -22,7 +22,18 @@ class Company extends Model
     protected $casts = [
         'efactura_settings'  => 'array',
         'efactura_test_mode' => 'boolean',
+        'modules'            => 'array',
     ];
+
+    // ─── Module helpers ───────────────────────────────────────────────────────
+
+    /**
+     * Check if the company has a specific module activated.
+     */
+    public function hasModule(string $key): bool
+    {
+        return in_array($key, $this->modules ?? [], true);
+    }
 
     // ─── Relationships ────────────────────────────────────────────────────────
 

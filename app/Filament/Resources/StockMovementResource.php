@@ -85,4 +85,10 @@ class StockMovementResource extends Resource
             'index' => Pages\ListStockMovements::route('/'),
         ];
     }
+
+    public static function canAccess(): bool
+    {
+        $company = \App\Models\Company::find(session('active_company_id'));
+        return $company?->hasModule('stocuri') ?? false;
+    }
 }
