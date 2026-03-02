@@ -8,8 +8,6 @@ use App\Filament\Resources\InvoiceResource;
 use App\Filament\Resources\ProformaResource;
 use App\Models\Contract;
 use App\Models\ContractTemplate;
-use App\Services\InvoiceService;
-use App\Services\ProformaService;
 use Filament\Forms\Components\Component;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Placeholder;
@@ -20,7 +18,6 @@ use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Forms\Form;
 use Filament\Forms\Get;
-use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Actions\Action;
@@ -323,30 +320,12 @@ class ContractResource extends Resource
                     Action::make('genereaza_factura')
                         ->label('Factură Fiscală')
                         ->icon('heroicon-o-receipt-percent')
-                        ->requiresConfirmation()
-                        ->modalHeading('Generează factură fiscală din contract')
-                        ->modalDescription('Se va crea o factură fiscală ciornă pe baza acestui contract.')
-                        ->modalSubmitActionLabel('Generează factură')
-                        ->action(function (Contract $record) {
-                            $invoice = app(InvoiceService::class)->createFromContract($record);
-                            Notification::make()->title('Factură creată cu succes')->success()->send();
-
-                            return redirect(InvoiceResource::getUrl('edit', ['record' => $invoice]));
-                        }),
+                        ->url(fn (Contract $record) => InvoiceResource::getUrl('create', ['contract_id' => $record->id])),
 
                     Action::make('genereaza_proforma')
                         ->label('Proformă')
                         ->icon('heroicon-o-document-currency-dollar')
-                        ->requiresConfirmation()
-                        ->modalHeading('Generează proformă din contract')
-                        ->modalDescription('Se va crea o proformă ciornă pe baza acestui contract.')
-                        ->modalSubmitActionLabel('Generează proformă')
-                        ->action(function (Contract $record) {
-                            $proforma = app(ProformaService::class)->createFromContract($record);
-                            Notification::make()->title('Proformă creată cu succes')->success()->send();
-
-                            return redirect(ProformaResource::getUrl('edit', ['record' => $proforma]));
-                        }),
+                        ->url(fn (Contract $record) => ProformaResource::getUrl('create', ['contract_id' => $record->id])),
                 ])
                     ->label('Generează')
                     ->icon('heroicon-o-document-plus')

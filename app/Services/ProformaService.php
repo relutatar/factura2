@@ -126,7 +126,50 @@ class ProformaService
     }
 
     /**
+     * Build the form-fill array for a new proforma pre-populated from a contract.
+     * Nothing is persisted. Pass the result to $form->fill() on the Create page.
+     */
+    public function prepareDataFromContract(Contract $contract): array
+    {
+        $contractDate = $contract->signed_date?->format('d.m.Y')
+            ?? $contract->start_date?->format('d.m.Y')
+            ?? now()->format('d.m.Y');
+
+        $defaultVatRateId = optional(VatRate::defaultRate())->id ?? VatRate::first()?->id;
+        $lineTotal        = (float) ($contract->value ?? 0);
+
+        $billingCycleValues = array_map(
+            static fn (BillingCycle $cycle): string => $cycle->value,
+            BillingCycle::cases(),
+        );
+        $billingCycle = (string) data_get($contract->additional_attributes, 'billing_cycle', '');
+        $unit = in_array($billingCycle, $billingCycleValues, true)
+            ? $billingCycle
+            : BillingCycle::Unic->value;
+
+        return [
+            'client_id'   => $contract->client_id,
+            'contract_id' => $contract->id,
+            'status'      => ProformaStatus::Draft->value,
+            'issue_date'  => now()->toDateString(),
+            'valid_until' => now()->addDays(30)->toDateString(),
+            'lines'       => [
+                [
+                    'product_id'  => null,
+                    'description' => "Servicii conform contract nr. {$contract->number} din {$contractDate}",
+                    'quantity'    => 1,
+                    'unit'        => $unit,
+                    'unit_price'  => $lineTotal,
+                    'vat_rate_id' => $defaultVatRateId,
+                    'sort_order'  => 0,
+                ],
+            ],
+        ];
+    }
+
+    /**
      * Create a draft proforma pre-filled from a contract.
+     * @deprecated Use prepareDataFromContract() + the Create page form flow instead.
      */
     public function createFromContract(Contract $contract): Proforma
     {
