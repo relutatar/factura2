@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\Contract;
+use App\Models\Decision;
 use App\Models\Invoice;
 use App\Services\PdfService;
 use Illuminate\Support\Facades\Route;
@@ -28,3 +29,13 @@ Route::get('/contracts/{contract}/pdf', function (Contract $contract, PdfService
         'Content-Type' => 'application/pdf',
     ]);
 })->middleware(['auth'])->name('contracts.pdf');
+
+Route::get('/decisions/{decision}/pdf', function (Decision $decision, PdfService $pdfService) {
+    $path = $pdfService->generateDecision($decision);
+
+    $number = $decision->number ?: $decision->id;
+
+    return response()->download($path, 'Decizie-' . $number . '.pdf', [
+        'Content-Type' => 'application/pdf',
+    ]);
+})->middleware(['auth'])->name('decisions.pdf');

@@ -12,6 +12,7 @@ class NumberingRange extends Model
 
     protected $fillable = [
         'company_id',
+        'decision_id',
         'document_type',
         'fiscal_year',
         'series',
@@ -29,5 +30,10 @@ class NumberingRange extends Model
     public function company(): BelongsTo
     {
         return $this->belongsTo(Company::class);
+    }
+
+    public function decision(): BelongsTo
+    {
+        return $this->belongsTo(Decision::class);
     }
 }
