@@ -505,14 +505,14 @@ Route::get('/proformas/{proforma}/pdf', function (\App\Models\Proforma $proforma
 ---
 
 ## Acceptance Criteria
-- [ ] `proformas` și `proforma_lines` tabele create prin migrare.
-- [ ] Proforma poate fi creată manual sau din contract.
-- [ ] Emiterea proformei alocă număr din plaja `proforma` prin `DocumentNumberService`.
-- [ ] Conversia proformă → factură fiscală crează o factură draft cu liniile copiate; proforma devine `convertita`.
-- [ ] PDF proformă conține mențiunea că nu este factură fiscală.
-- [ ] Status badge afișat corect în tabel.
-- [ ] Numerotare imutabilă după emitere.
-- [ ] Toate etichetele și notificările sunt în **română**.
+- [x] `proformas` și `proforma_lines` tabele create prin migrare.
+- [x] Proforma poate fi creată manual sau din contract.
+- [x] Emiterea proformei alocă număr din plaja `proforma` prin `InvoiceService::reserveNextNumber()` (DocumentNumberService neimplementat încă).
+- [x] Conversia proformă → factură fiscală crează o factură draft cu liniile copiate; proforma devine `convertita`.
+- [x] PDF proformă conține mențiunea că nu este factură fiscală.
+- [x] Status badge afișat corect în tabel.
+- [x] Numerotare imutabilă după emitere.
+- [x] Toate etichetele și notificările sunt în **română**.
 
 ---
 
@@ -521,3 +521,4 @@ Route::get('/proformas/{proforma}/pdf', function (\App\Models\Proforma $proforma
 | Date | Implemented | Pending | Blockers / Notes |
 |---|---|---|---|
 | — | — | Everything | Not started |
+| 2026-06-01 | ProformaStatus enum, migrări (proformas, proforma_lines, proforma_id on invoices), modele Proforma + ProformaLine, ProformaService (recalculateTotals / emit / convertToInvoice / createFromContract), GenerateProformaPdf job, PdfService::generateProforma(), template PDF proforma.blade.php, ProformaResource cu paginile Create/Edit/List, ruta proformas.pdf, migrări rulate cu succes | — | DocumentNumberService neimplementat încă – se folosește InvoiceService::reserveNextNumber() ca fallback; rangeId nu se setează pe proformas.numbering_range_id |

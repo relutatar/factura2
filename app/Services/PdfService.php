@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Contract;
 use App\Models\Decision;
 use App\Models\Invoice;
+use App\Models\Proforma;
 use Barryvdh\DomPDF\Facade\Pdf;
 
 class PdfService
@@ -82,6 +83,36 @@ class PdfService
         Pdf::loadView('pdf.decision', compact('decision'))
             ->setPaper('a4', 'portrait')
             ->save($path);
+
+        return $path;
+    }
+
+    /**
+     * Generate a PDF for the given proforma and store it.
+     * Returns the absolute path to the saved file.
+     */
+    public function generateProforma(Proforma $proforma): string
+    {
+        $proforma->loadMissing(['company', 'client', 'lines.vatRate']);
+
+        $dir = storage_path("app/proformas/{$proforma->company_id}");
+        if (! is_dir($dir)) {
+            mkdir($dir, 0755, true);
+        }
+
+        $filename = $proforma->full_number
+            ? preg_replace('/[^A-Za-z0-9\-_]/', '_', $proforma->full_number)
+            : "proforma-{$proforma->id}";
+
+        $path = "{$dir}/{$filename}.pdf";
+
+        Pdf::loadView('pdf.proforma', compact('proforma'))
+            ->setPaper('a4', 'portrait')
+            ->save($path);
+
+        Proforma::withoutGlobalScopes()
+            ->where('id', $proforma->id)
+            ->update(['pdf_path' => $path]);
 
         return $path;
     }

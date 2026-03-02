@@ -3,6 +3,7 @@
 use App\Models\Contract;
 use App\Models\Decision;
 use App\Models\Invoice;
+use App\Models\Proforma;
 use App\Services\PdfService;
 use Illuminate\Support\Facades\Route;
 
@@ -39,3 +40,15 @@ Route::get('/decisions/{decision}/pdf', function (Decision $decision, PdfService
         'Content-Type' => 'application/pdf',
     ]);
 })->middleware(['auth'])->name('decisions.pdf');
+
+Route::get('/proformas/{proforma}/pdf', function (Proforma $proforma, PdfService $pdfService) {
+    $path = $pdfService->generateProforma($proforma);
+
+    $filename = $proforma->full_number
+        ? 'Proforma-' . preg_replace('/[^A-Za-z0-9\-_]/', '_', $proforma->full_number) . '.pdf'
+        : 'Proforma-' . $proforma->id . '.pdf';
+
+    return response()->download($path, $filename, [
+        'Content-Type' => 'application/pdf',
+    ]);
+})->middleware(['auth'])->name('proformas.pdf');
