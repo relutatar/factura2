@@ -1,0 +1,42 @@
+În contextul gestiunii unei firme în România, termenul "plajă de facturi" (sau serie de facturi) se referă la intervalul de numere consecutive pe care o firmă îl alocă facturilor sale pentru un anumit an fiscal.
+Mai simplu spus, este setul de numere de la „X” la „Y” pe care îl vei folosi pentru a-ți factura clienții.
+Iată principalele aspecte pe care trebuie să le cunoști:
+1. Din ce este compusă o plajă?
+Fiecare factură trebuie să aibă un identificator unic format din:
+Seria: De obicei un grup de litere (ex: ALFA, FA, SER). Aceasta este aleasă liber de firmă.
+Numărul: O secvență numerică ce începe, de regulă, de la 1 (ex: 001, 002, 003).
+Exemplu: Dacă decizi ca plaja ta să fie seria INV de la numărul 001 la 100, facturile tale vor fi: INV 001, INV 002 ... până la INV 100.
+2. Obligativitatea Deciziei de Numerotare
+Conform legislației fiscale (Codul Fiscal), o firmă nu poate emite facturi la întâmplare. La începutul fiecărui an (sau la înființarea firmei), administratorul trebuie să emită o Decizie internă de numerotare a formularelor.
+Această decizie trebuie să specifice:
+Care este seria folosită.
+De la ce număr se începe.
+Cine este persoana responsabilă de emiterea lor.
+3. Reguli importante de respectat
+Continuitatea: Numerele trebuie să fie consecutive. Nu poți să sari de la factura 5 direct la factura 10 fără o justificare legală (cum ar fi anularea facturilor intermediare).
+Unicitatea: Nu poți avea două facturi cu aceeași serie și număr în același an.
+Cronologia: Factura cu numărul 2 nu poate avea o dată anterioară facturii cu numărul 1.
+Sisteme diferite: Dacă firma are mai multe puncte de lucru sau departamente, poți aloca plaje diferite pentru fiecare (ex: Seria BUC pentru București și Seria CLJ pentru Cluj).
+4. Importanța în Softurile de Gestiune
+Dacă folosești un program de facturare (SmartBill, FGO, Oblio etc.), acesta îți va cere să definești plaja de facturi de la început. Programul va genera automat următorul număr din plajă, prevenind greșelile de dublare sau săriturile peste numere.
+De ce este relevant acum?
+Odată cu implementarea e-Factura, respectarea ordinii și a plajelor de numerotare a devenit și mai critică, deoarece facturile sunt transmise în timp real către serverele ANAF, iar orice eroare de numerotare este mult mai greu de corectat ulterior.
+
+
+Iată un model standard de Decizie de Numerotare, pe care îl poți adapta pentru firma ta. Aceasta trebuie semnată de administrator la începutul fiecărui an sau ori de câte ori schimbi seria/plaja.
+DECIZIE INTERNĂ NR. [Număr Decizie] / [Data Decizie]
+Privind alocarea seriilor și numerelor documentelor financiar-contabile
+Subsemnatul/a [Nume Administrator], în calitate de administrator al societății [Nume Firmă], CUI [Cod Unic de Înregistrare], cu sediul în [Adresă Sediu],
+În conformitate cu prevederile OMFP nr. 2634/2015 privind documentele financiar-contabile și ale Codului Fiscal,
+DECID:
+Alocarea seriilor și numerelor: Începând cu data de [Data de Start], pentru activitatea desfășurată de societate în anul [Anul], se vor utiliza următoarele plaje de numerotare:
+FACTURI: Seria [Ex: FA], de la nr. [Ex: 001] la nr. [Ex: 1000].
+CHITANȚE (dacă e cazul): Seria [Ex: CH], de la nr. [Ex: 001] la nr. [Ex: 500].
+AVIZE DE ÎNSOȚIRE (dacă e cazul): Seria [Ex: AV], de la nr. [Ex: 001] la nr. [Ex: 200].
+Responsabilitate: Persoana responsabilă de emiterea și gestionarea acestor formulare este [Nume Persoană/Administrator].
+Procedură: Numerotarea documentelor se va face secvențial și cronologic. În cazul utilizării unui program de facturare, acesta va asigura automat ordinea numerelor conform prezentei decizii.
+Arhivare: Documentele vor fi arhivate în format electronic (conform cerințelor RO e-Factura) și/sau letric la sediul societății. 
+
+Prezenta decizie a fost întocmită astăzi, [Data de azi], în 2 exemplare.
+Administrator,
+[Semnătura și Ștampila - dacă se mai folosește]
