@@ -7,7 +7,9 @@
 - **NOD CONSULTING** – DDD (pest control) services company
 - **PAINTBALL MUREȘ** – Paintball leisure/events company
 
-The application handles clients, contacts, contracts, products, stock movements, invoicing (including proforma, receipts, delivery notes), and Romanian e-Factura (ANAF) electronic invoice submission.
+The application handles clients, contacts, contracts (with addendums and annexes), products, stock movements, work completion reports (procese verbale), invoicing (fiscal invoices, proforma invoices, receipts / chitanțe), fiscal receipts for cash-register sales (bonuri fiscale), and Romanian e-Factura (ANAF) electronic invoice submission.
+
+The system is **generic**: additional companies with other service types can be added without code changes, using the per-company module activation system.
 
 **Application language: Romanian** – all UI labels, validation messages, notifications, and user-facing text must be in Romanian.
 
@@ -273,10 +275,22 @@ class GenerateInvoicePdf implements ShouldQueue
 
 ### Enums
 - Define PHP 8.1 backed enums in `app/Enums/`.
-- Contract types: `mentenanta_ddd`, `eveniment_paintball`.
-- Invoice types: `factura`, `proforma`, `chitanta`, `aviz`.
-- Invoice status: `draft`, `trimisa`, `platita`, `anulata`.
-- VAT rates: `21`, `11`, `0` (stored as integer percentage in the `VatRate` enum).
+- Invoice status (applies to facturi fiscale): `draft`, `trimisa`, `platita`, `anulata`.
+- Proforma status: `draft`, `trimisa`, `convertita`, `anulata`.
+- Receipt status: `emisa`, `anulata`.
+- Payment methods: `virament_bancar`, `numerar` — **only these two** are supported. A chitanță (receipt) is generated **manually** via the „Generare chitanță" button in `InvoiceResource`, available only on invoices with `status = platita`, `payment_method = numerar`, and no receipt yet.
+- Contract addendum status: `draft`, `semnat`, `anulat`.
+- Work-completion (PV) status: `draft`, `semnat`, `anulat`.
+- Fiscal receipt status: `inregistrat`, `anulat`.
+- VAT rates: `21`, `11`, `0` (stored in the `vat_rates` database table, not hardcoded in enums).
+
+### Company Modules
+- Every `Company` record has a `modules` JSON column listing active optional modules.
+- Available module keys: `bonuri_fiscale`, `procese_verbale`, `acte_aditionale`, `stocuri`, `efactura`.
+- Navigation groups and resources are conditionally shown based on the active company's modules.
+- Helper: `$company->hasModule('bonuri_fiscale')` — implement as a method on `Company`.
+- Seed NOD CONSULTING with modules: `acte_aditionale`, `procese_verbale`, `stocuri`, `efactura`.
+- Seed PAINTBALL MUREȘ with modules: `bonuri_fiscale`, `stocuri`.
 
 ---
 
@@ -284,24 +298,71 @@ class GenerateInvoicePdf implements ShouldQueue
 
 ```
 Company
-  └── hasMany: Client, Contract, Product, Invoice
+  ├── hasMany: Client, Contract, Product, Invoice, Proforma, Receipt
+  ├── hasMany: ContractTemplate, DecisionTemplate, DocumentTemplate
+  ├── hasMany: NumberingRange, Decision
+  └── modules: JSON column (active module keys)
 
 Client
   ├── hasMany: Contact
   ├── hasMany: Contract
-  └── hasMany: Invoice
+  ├── hasMany: Invoice
+  └── hasMany: Proforma
 
 Contract
   ├── belongsTo: Client
-  └── hasMany: Invoice  (can generate invoice)
+  ├── belongsTo: ContractTemplate
+  ├── hasMany: Invoice
+  ├── hasMany: Proforma
+  ├── hasMany: ContractAmendment   (acte adiționale – separate documents with body + PDF)
+  ├── hasMany: ContractAnnex       (anexe – file attachments OR template-generated docs)
+  └── hasMany: WorkCompletion      (procese verbale de lucrări)
 
-Invoice
+ContractAmendment                  (act adițional)
+  ├── belongsTo: Contract
+  └── belongsTo: DocumentTemplate (nullable)
+
+ContractAnnex                      (anexă)
+  ├── belongsTo: Contract
+  ├── belongsTo: DocumentTemplate (nullable – for generated annexes)
+  └── file_path: nullable string  (for uploaded file annexes)
+
+WorkCompletion                     (proces verbal de lucrări)
+  ├── belongsTo: Contract
+  └── belongsTo: DocumentTemplate
+  └── number: sequential per company, reset annually
+
+Invoice                            (factură fiscală)
   ├── belongsTo: Client
   ├── belongsTo: Contract (nullable)
-  └── hasMany: InvoiceLine
+  ├── belongsTo: Proforma (nullable – if generated from proforma)
+  ├── hasMany: InvoiceLine
+  └── hasOne: Receipt (nullable – only if payment_method = numerar)
+
+Proforma                           (factură proformă)
+  ├── belongsTo: Client
+  ├── belongsTo: Contract (nullable)
+  ├── hasMany: ProformaLine
+  └── hasOne: Invoice (nullable – after conversion)
+
+Receipt                            (chitanță)
+  └── belongsTo: Invoice
+
+FiscalReceipt                      (bon fiscal – modul Paintball)
+  ├── belongsTo: Company
+  ├── hasMany: FiscalReceiptLine
+  └── hasOne: ConsumptionNote (auto-generated on save)
+
+FiscalReceiptLine
+  ├── belongsTo: FiscalReceipt
+  └── belongsTo: Product
 
 InvoiceLine
   ├── belongsTo: Invoice
+  └── belongsTo: Product
+
+ProformaLine
+  ├── belongsTo: Proforma
   └── belongsTo: Product
 
 Product
@@ -310,6 +371,11 @@ Product
 StockMovement
   ├── belongsTo: Product
   └── belongsTo: Invoice (nullable – stock deducted on invoice finalize)
+
+DocumentTemplate                   (template generic: PV, anexe generate etc.)
+  ├── belongsTo: Company (nullable – null = system template)
+  ├── context_type: enum (contract, invoice, client)
+  └── body_template: text with placeholders
 ```
 
 ---
@@ -347,18 +413,36 @@ StockMovement
 ```
 app/
 ├── Enums/
-│   ├── ContractType.php
-│   ├── InvoiceType.php
-│   └── InvoiceStatus.php
+│   ├── ContractAmendmentStatus.php
+│   ├── ContractStatus.php
+│   ├── FiscalReceiptStatus.php
+│   ├── InvoiceStatus.php
+│   ├── PaymentMethod.php          // virament_bancar | numerar
+│   ├── ProformaStatus.php
+│   ├── ReceiptStatus.php
+│   ├── StockMovementType.php
+│   └── WorkCompletionStatus.php
 ├── Filament/
 │   ├── Pages/Dashboard.php
 │   └── Resources/
 │       ├── ClientResource.php
+│       ├── CompanyResource.php
 │       ├── ContractResource.php
-│       ├── ProductResource.php
-│       ├── StockMovementResource.php
+│       ├── ContractAmendmentResource.php
+│       ├── ContractAnnexResource.php
+│       ├── ContractTemplateResource.php
+│       ├── DecisionResource.php
+│       ├── DecisionTemplateResource.php
+│       ├── DocumentTemplateResource.php
+│       ├── FiscalReceiptResource.php
 │       ├── InvoiceResource.php
-│       └── VatRateResource.php
+│       ├── NumberingRangeResource.php
+│       ├── ProductResource.php
+│       ├── ProformaResource.php
+│       ├── ReceiptResource.php
+│       ├── StockMovementResource.php
+│       ├── VatRateResource.php
+│       └── WorkCompletionResource.php
 ├── Http/Middleware/SetActiveCompany.php
 ├── Livewire/CompanySwitcher.php
 ├── Models/
@@ -366,20 +450,44 @@ app/
 │   ├── Client.php
 │   ├── Contact.php
 │   ├── Contract.php
-│   ├── Product.php
-│   ├── StockMovement.php
+│   ├── ContractAmendment.php
+│   ├── ContractAnnex.php
+│   ├── ContractTemplate.php
+│   ├── Decision.php
+│   ├── DecisionTemplate.php
+│   ├── DocumentTemplate.php
+│   ├── FiscalReceipt.php
+│   ├── FiscalReceiptLine.php
 │   ├── Invoice.php
 │   ├── InvoiceLine.php
+│   ├── NumberingRange.php
+│   ├── Product.php
+│   ├── Proforma.php
+│   ├── ProformaLine.php
+│   ├── Receipt.php
+│   ├── StockMovement.php
 │   ├── VatRate.php
+│   ├── WorkCompletion.php
 │   └── Scopes/CompanyScope.php
 ├── Services/
 │   ├── AnafService.php
+│   ├── ContractTemplateService.php
+│   ├── DecisionService.php
+│   ├── DocumentNumberService.php
+│   ├── DocumentTemplateService.php
+│   ├── FiscalReceiptService.php
 │   ├── InvoiceService.php
 │   ├── PdfService.php
-│   └── StockService.php
+│   ├── ProformaService.php
+│   ├── ReceiptService.php
+│   ├── StockService.php
+│   └── WorkCompletionService.php
 └── Jobs/
     ├── GenerateInvoicePdf.php
-    └── PollEfacturaStatus.php
+    ├── GenerateProformaPdf.php
+    ├── GenerateReceiptPdf.php
+    ├── PollEfacturaStatus.php
+    └── SubmitEfactura.php
 ```
 
 ---
@@ -411,6 +519,11 @@ Every feature prompt file (`.github/prompts/*.prompt.md`) contains a `## Develop
 - Show colored status badges in all tables.
 - Use Filament notifications (toasts) in Romanian for all user-facing feedback.
 - Validate Romanian CIF/CNP format where applicable.
+- Always check `$company->hasModule('key')` before showing module-specific resources or navigation items.
+- Generate a `Receipt` (chitanță) via the manual „Generare chitanță" button in `InvoiceResource`; show the button only when `status = platita`, `payment_method = numerar`, and no receipt exists yet.
+- Keep `Proforma`, `Invoice`, and `Receipt` as **separate models and resources** — never merge them into a single model.
+- When a `FiscalReceipt` is saved/posted, auto-create a `ConsumptionNote` for consumable lines.
+- Number `WorkCompletion` documents sequentially per company, resetting each calendar year (no numbering range / decision required, simpler than invoices).
 
 **DON'T:**
 - Don't hardcode company names or IDs anywhere – always read from the session/model.

@@ -7,6 +7,11 @@ Contracts are the core business documents linking clients to recurring services.
 - `Client` model and `ClientResource` must exist (see `02-clients-contacts.prompt.md`).
 - `Invoice` model must exist before wiring the "Generează Factură" action (see `05-invoicing.prompt.md`). Create a stub first if needed.
 
+## Out of scope for this prompt (covered in separate prompts)
+- **Acte adiționale** (contract amendments) → see `11-contract-addendums-annexes.prompt.md`
+- **Anexe la contracte** (file attachments and template-generated annexes) → see `11-contract-addendums-annexes.prompt.md`
+- **Procese verbale de lucrări** (work completion reports) → see `12-work-completions.prompt.md`
+
 ---
 
 ## Task
@@ -194,6 +199,29 @@ class Contract extends Model
     public function invoices(): HasMany
     {
         return $this->hasMany(Invoice::class);
+    }
+
+    public function proformas(): HasMany
+    {
+        return $this->hasMany(Proforma::class);
+    }
+
+    /** Acte adiționale – separate documents (see prompt 11) */
+    public function amendments(): HasMany
+    {
+        return $this->hasMany(ContractAmendment::class);
+    }
+
+    /** Anexe – file attachments and template-generated docs (see prompt 11) */
+    public function annexes(): HasMany
+    {
+        return $this->hasMany(ContractAnnex::class);
+    }
+
+    /** Procese verbale de lucrări (see prompt 12) */
+    public function workCompletions(): HasMany
+    {
+        return $this->hasMany(WorkCompletion::class);
     }
 }
 ```

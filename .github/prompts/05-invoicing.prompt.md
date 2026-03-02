@@ -12,6 +12,11 @@ Numbering governance (plaje/serii, continuitate, cronologie, concurenta) is hand
 - Queue (`database` driver) must be configured.
 - Document numbering module must be implemented (see `09-document-numbering-ranges.prompt.md`).
 
+## Out of scope for this prompt (covered in separate prompts)
+- **Facturi proforme** (proforma invoices, with conversion to fiscal invoice) → see `13-proforma-invoices.prompt.md`
+- **Chitanțe** (receipts, separate model + resource) → see `14-receipts.prompt.md`
+- The `PaymentMethod` enum defined here is the source of truth for both this module and the receipt module.
+
 ---
 
 ## Task
@@ -214,21 +219,20 @@ namespace App\Enums;
 
 enum PaymentMethod: string
 {
-    case Numerar     = 'numerar';
-    case OrdinPlata  = 'ordin_plata';
-    case Card        = 'card';
-    case Compensare  = 'compensare';
+    case ViramentBancar = 'virament_bancar';
+    case Numerar        = 'numerar';
 
     public function label(): string
     {
         return match($this) {
-            self::Numerar    => 'Numerar',
-            self::OrdinPlata => 'Ordin de plată',
-            self::Card       => 'Card bancar',
-            self::Compensare => 'Compensare',
+            self::ViramentBancar => 'Virament bancar',
+            self::Numerar        => 'Numerar',
         };
     }
 }
+```
+
+> **Regulă:** Chitanța (Receipt) se generează **manual** prin butonul „Generare chitanță" din `InvoiceResource`, disponibil pe facturile cu `payment_method = numerar` marcate ca `platita` și fără chitanță deja emisă. A se vedea `14-receipts.prompt.md` pentru implementarea completă.
 ```
 
 ### Step 2 – Generate models and migrations
@@ -245,6 +249,7 @@ Schema::create('invoices', function (Blueprint $table) {
     $table->foreignId('company_id')->constrained()->cascadeOnDelete();
     $table->foreignId('client_id')->constrained()->cascadeOnDelete();
     $table->foreignId('contract_id')->nullable()->constrained()->nullOnDelete();
+    $table->foreignId('proforma_id')->nullable()->constrained('proformas')->nullOnDelete(); // set after Proforma model exists
     $table->enum('status', ['draft', 'trimisa', 'platita', 'anulata'])->default('draft');
     $table->string('series');
     $table->unsignedInteger('number');
@@ -256,7 +261,7 @@ Schema::create('invoices', function (Blueprint $table) {
     $table->decimal('vat_total', 15, 2)->default(0);
     $table->decimal('total', 15, 2)->default(0);
     $table->string('currency', 3)->default('RON');
-    $table->enum('payment_method', ['numerar', 'ordin_plata', 'card', 'compensare'])->default('ordin_plata');
+    $table->enum('payment_method', ['virament_bancar', 'numerar'])->default('virament_bancar');
     $table->string('payment_reference')->nullable();
     $table->datetime('paid_at')->nullable();
     $table->string('efactura_id')->nullable();
@@ -337,6 +342,8 @@ class Invoice extends Model
     public function company(): BelongsTo   { return $this->belongsTo(Company::class); }
     public function client(): BelongsTo    { return $this->belongsTo(Client::class); }
     public function contract(): BelongsTo  { return $this->belongsTo(Contract::class)->withDefault(); }
+    public function proforma(): BelongsTo  { return $this->belongsTo(Proforma::class)->withDefault(); }
+    public function receipt(): HasOne      { return $this->hasOne(Receipt::class); }
 
     public function lines(): HasMany
     {
@@ -453,6 +460,8 @@ class InvoiceService
 
         if ($newStatus === InvoiceStatus::Platita) {
             $invoice->paid_at = now();
+            // Chitanța NU se generează automat. Operatorul o generează manual
+            // prin butonul „Generare chitanță" din InvoiceResource (vezi 14-receipts.prompt.md).
         }
 
         $invoice->status = $newStatus;
@@ -479,7 +488,7 @@ class InvoiceService
             'full_number'    => $series . '-' . str_pad($number, 4, '0', STR_PAD_LEFT),
             'issue_date'     => now(),
             'due_date'       => now()->addDays(30),
-            'payment_method' => 'ordin_plata',
+            'payment_method' => 'virament_bancar',
         ]);
     }
 }
@@ -702,6 +711,28 @@ protected static ?string $navigationIcon   = 'heroicon-o-receipt-percent';
         ->requiresConfirmation()
         ->visible(fn (Invoice $record) => $record->status === InvoiceStatus::Trimisa)
         ->action(fn (Invoice $record) => app(InvoiceService::class)->transition($record, InvoiceStatus::Platita)),
+
+    Action::make('genereaza_chitanta')
+        ->label('Generare chitanță')
+        ->icon('heroicon-o-document-check')
+        ->requiresConfirmation()
+        ->modalHeading('Generare chitanță')
+        ->modalDescription('Se va emite o chitanță pentru această factură și va fi alocată automat numerotarea.')
+        ->modalSubmitActionLabel('Generează chitanță')
+        // Vizibil doar pe facturi plătite cu numerar, fără chitanță deja emisă
+        ->visible(fn (Invoice $record) =>
+            $record->status === InvoiceStatus::Platita
+            && $record->payment_method === PaymentMethod::Numerar
+            && ! $record->receipt
+        )
+        ->action(function (Invoice $record) {
+            try {
+                app(\App\Services\ReceiptService::class)->createForInvoice($record);
+                Notification::make()->title('Chitanță generată cu succes')->success()->send();
+            } catch (\RuntimeException $e) {
+                Notification::make()->title('Eroare la generarea chitanței')->body($e->getMessage())->danger()->send();
+            }
+        }),
 
     Action::make('anuleaza')
         ->label('Anulează')
