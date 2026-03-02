@@ -52,7 +52,9 @@ class ProformaResource extends Resource
                         ->relationship('client', 'name')
                         ->searchable()
                         ->preload()
-                        ->required(),
+                        ->required()
+                        ->disabled(fn (?Proforma $record) => $record !== null)
+                        ->dehydrated(fn (?Proforma $record) => $record === null),
 
                     Select::make('contract_id')
                         ->label('Contract (opțional)')
@@ -60,7 +62,9 @@ class ProformaResource extends Resource
                         ->searchable()
                         ->preload()
                         ->nullable()
-                        ->live(),
+                        ->live()
+                        ->disabled(fn (?Proforma $record) => $record !== null)
+                        ->dehydrated(fn (?Proforma $record) => $record === null),
 
                     Select::make('status')
                         ->label('Status')
@@ -75,10 +79,14 @@ class ProformaResource extends Resource
                         ->label('Data emiterii')
                         ->required()
                         ->default(today())
+                        ->native(false)
+                        ->suffixIcon('heroicon-m-calendar')
                         ->displayFormat('d.m.Y'),
 
                     DatePicker::make('valid_until')
                         ->label('Valabilă până la')
+                        ->native(false)
+                        ->suffixIcon('heroicon-m-calendar')
                         ->displayFormat('d.m.Y'),
 
                     Textarea::make('notes')

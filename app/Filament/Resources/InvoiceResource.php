@@ -55,7 +55,9 @@ class InvoiceResource extends Resource
                         ->relationship('client', 'name')
                         ->searchable()
                         ->preload()
-                        ->required(),
+                        ->required()
+                        ->disabled(fn (?Invoice $record) => $record !== null)
+                        ->dehydrated(fn (?Invoice $record) => $record === null),
 
                     Select::make('contract_id')
                         ->label('Contract (opțional)')
@@ -63,7 +65,9 @@ class InvoiceResource extends Resource
                         ->searchable()
                         ->preload()
                         ->nullable()
-                        ->live(),
+                        ->live()
+                        ->disabled(fn (?Invoice $record) => $record !== null)
+                        ->dehydrated(fn (?Invoice $record) => $record === null),
 
                     Select::make('status')
                         ->label('Status')
@@ -100,14 +104,20 @@ class InvoiceResource extends Resource
                         ->label('Data emiterii')
                         ->required()
                         ->default(today())
+                        ->native(false)
+                        ->suffixIcon('heroicon-m-calendar')
                         ->displayFormat('d.m.Y'),
 
                     DatePicker::make('due_date')
                         ->label('Scadență')
+                        ->native(false)
+                        ->suffixIcon('heroicon-m-calendar')
                         ->displayFormat('d.m.Y'),
 
                     DatePicker::make('delivery_date')
                         ->label('Data livrării')
+                        ->native(false)
+                        ->suffixIcon('heroicon-m-calendar')
                         ->displayFormat('d.m.Y'),
 
                     Textarea::make('notes')

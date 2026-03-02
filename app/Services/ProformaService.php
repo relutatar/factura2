@@ -2,12 +2,15 @@
 
 namespace App\Services;
 
+use App\Enums\BillingCycle;
 use App\Enums\InvoiceStatus;
 use App\Enums\ProformaStatus;
 use App\Jobs\GenerateProformaPdf;
 use App\Models\Contract;
 use App\Models\Invoice;
 use App\Models\Proforma;
+use App\Models\ProformaLine;
+use App\Models\VatRate;
 
 class ProformaService
 {
@@ -127,7 +130,7 @@ class ProformaService
      */
     public function createFromContract(Contract $contract): Proforma
     {
-        return Proforma::create([
+        $proforma = Proforma::create([
             'company_id'  => $contract->company_id,
             'client_id'   => $contract->client_id,
             'contract_id' => $contract->id,
@@ -135,5 +138,41 @@ class ProformaService
             'issue_date'  => now()->toDateString(),
             'valid_until' => now()->addDays(30)->toDateString(),
         ]);
+
+        // Default first line referencing the contract
+        $contractDate = $contract->signed_date?->format('d.m.Y')
+            ?? $contract->start_date?->format('d.m.Y')
+            ?? now()->format('d.m.Y');
+
+        $defaultVatRateId = optional(VatRate::defaultRate())->id ?? VatRate::first()?->id;
+        $lineTotal        = (float) ($contract->value ?? 0);
+        $vatRate          = VatRate::find($defaultVatRateId);
+        $vatAmount        = $vatRate ? round($lineTotal * ((float) $vatRate->value / 100), 2) : 0;
+
+        $billingCycleValues = array_map(
+            static fn (BillingCycle $cycle): string => $cycle->value,
+            BillingCycle::cases(),
+        );
+        $billingCycle = (string) data_get($contract->additional_attributes, 'billing_cycle', '');
+        $unit = in_array($billingCycle, $billingCycleValues, true)
+            ? $billingCycle
+            : BillingCycle::Unic->value;
+
+        ProformaLine::create([
+            'proforma_id'    => $proforma->id,
+            'description'    => "Servicii conform contract nr. {$contract->number} din {$contractDate}",
+            'quantity'       => 1,
+            'unit'           => $unit,
+            'unit_price'     => $lineTotal,
+            'vat_rate_id'    => $defaultVatRateId,
+            'vat_amount'     => $vatAmount,
+            'line_total'     => $lineTotal,
+            'total_with_vat' => $lineTotal + $vatAmount,
+            'sort_order'     => 0,
+        ]);
+
+        $this->recalculateTotals($proforma);
+
+        return $proforma;
     }
 }

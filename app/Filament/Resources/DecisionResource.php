@@ -100,6 +100,8 @@ class DecisionResource extends Resource
                         ->default(today())
                         ->required()
                         ->disabled(fn (?Decision $record): bool => $record?->status === DecisionStatus::Issued)
+                        ->native(false)
+                        ->suffixIcon('heroicon-m-calendar')
                         ->displayFormat('d.m.Y')
                         ->dehydrated(),
 
@@ -191,7 +193,9 @@ class DecisionResource extends Resource
             'date' => DatePicker::make($statePath)
                 ->label($label)
                 ->required($required)
-                ->displayFormat('d.m.Y'),
+                ->native(false)
+                        ->suffixIcon('heroicon-m-calendar')
+                        ->displayFormat('d.m.Y'),
 
             'select' => Select::make($statePath)
                 ->label($label)

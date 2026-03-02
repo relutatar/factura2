@@ -5,9 +5,11 @@ namespace App\Filament\Resources;
 use App\Enums\ContractStatus;
 use App\Filament\Resources\ContractResource\Pages;
 use App\Filament\Resources\InvoiceResource;
+use App\Filament\Resources\ProformaResource;
 use App\Models\Contract;
 use App\Models\ContractTemplate;
 use App\Services\InvoiceService;
+use App\Services\ProformaService;
 use Filament\Forms\Components\Component;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Placeholder;
@@ -44,12 +46,20 @@ class ContractResource extends Resource
                         ->label('Număr contract')
                         ->default(fn (): string => self::suggestNextContractNumber())
                         ->required(),
+                    DatePicker::make('signed_date')
+                        ->label('Data contract (din)')
+                        ->required()
+                        ->default(today())
+                        ->native(false)
+                        ->suffixIcon('heroicon-m-calendar')
+                        ->displayFormat('d.m.Y'),
                     Select::make('client_id')
                         ->label('Client')
                         ->relationship('client', 'name')
                         ->searchable()
                         ->default(fn (): ?int => request()->integer('client_id') ?: null)
-                        ->required(),
+                        ->required()
+                        ->columnSpanFull(),
                     Select::make('contract_template_id')
                         ->label('Tip contract (Șablon)')
                         ->relationship(
@@ -62,18 +72,18 @@ class ContractResource extends Resource
                         ->live()
                         ->default(fn () => ContractTemplate::defaultTemplate()?->id)
                         ->required()
-                        ->helperText('Template-ul va fi folosit la generarea PDF-ului de contract.'),
-                    DatePicker::make('signed_date')
-                        ->label('Data contract (din)')
-                        ->required()
-                        ->default(today())
-                        ->displayFormat('d.m.Y'),
+                        ->helperText('Template-ul va fi folosit la generarea PDF-ului de contract.')
+                        ->columnSpanFull(),
                     DatePicker::make('start_date')
                         ->label('Data început')
                         ->required()
+                        ->native(false)
+                        ->suffixIcon('heroicon-m-calendar')
                         ->displayFormat('d.m.Y'),
                     DatePicker::make('end_date')
                         ->label('Data sfârșit')
+                        ->native(false)
+                        ->suffixIcon('heroicon-m-calendar')
                         ->displayFormat('d.m.Y'),
                     TextInput::make('value')
                         ->label('Valoare')
@@ -94,8 +104,9 @@ class ContractResource extends Resource
                         ->default('activ'),
                     Textarea::make('notes')
                         ->label('Observații')
-                        ->rows(2),
-                ]),
+                        ->rows(2)
+                        ->columnSpanFull(),
+                ])->columns(2),
 
                 Tabs\Tab::make('Atribute suplimentare')
                     ->schema(fn (Get $get): array => self::additionalAttributesSchema($get('contract_template_id'))),
@@ -181,14 +192,17 @@ class ContractResource extends Resource
             'date' => DatePicker::make($statePath)
                 ->label($label)
                 ->required($required)
-                ->displayFormat('d.m.Y'),
+                ->native(false)
+                        ->suffixIcon('heroicon-m-calendar')
+                        ->displayFormat('d.m.Y'),
 
             'select' => Select::make($statePath)
                 ->label($label)
                 ->required($required)
                 ->options(self::normalizeSelectOptions($field['options'] ?? []))
                 ->searchable()
-                ->native(false),
+                ->native(false)
+                        ->suffixIcon('heroicon-m-calendar'),
 
             'toggle' => Toggle::make($statePath)
                 ->label($label)
@@ -305,18 +319,38 @@ class ContractResource extends Resource
             ->actions([
                 Tables\Actions\ViewAction::make()->label('Vezi'),
                 Tables\Actions\EditAction::make()->label('Editează'),
-                Action::make('genereaza_factura')
-                    ->label('Generează Factură')
+                Tables\Actions\ActionGroup::make([
+                    Action::make('genereaza_factura')
+                        ->label('Factură Fiscală')
+                        ->icon('heroicon-o-receipt-percent')
+                        ->requiresConfirmation()
+                        ->modalHeading('Generează factură fiscală din contract')
+                        ->modalDescription('Se va crea o factură fiscală ciornă pe baza acestui contract.')
+                        ->modalSubmitActionLabel('Generează factură')
+                        ->action(function (Contract $record) {
+                            $invoice = app(InvoiceService::class)->createFromContract($record);
+                            Notification::make()->title('Factură creată cu succes')->success()->send();
+
+                            return redirect(InvoiceResource::getUrl('edit', ['record' => $invoice]));
+                        }),
+
+                    Action::make('genereaza_proforma')
+                        ->label('Proformă')
+                        ->icon('heroicon-o-document-currency-dollar')
+                        ->requiresConfirmation()
+                        ->modalHeading('Generează proformă din contract')
+                        ->modalDescription('Se va crea o proformă ciornă pe baza acestui contract.')
+                        ->modalSubmitActionLabel('Generează proformă')
+                        ->action(function (Contract $record) {
+                            $proforma = app(ProformaService::class)->createFromContract($record);
+                            Notification::make()->title('Proformă creată cu succes')->success()->send();
+
+                            return redirect(ProformaResource::getUrl('edit', ['record' => $proforma]));
+                        }),
+                ])
+                    ->label('Generează')
                     ->icon('heroicon-o-document-plus')
-                    ->requiresConfirmation()
-                    ->modalHeading('Generează factură din contract')
-                    ->modalDescription('Se va crea o factură draft pe baza acestui contract.')
-                    ->modalSubmitActionLabel('Generează')
-                    ->action(function (Contract $record) {
-                        $invoice = app(InvoiceService::class)->createFromContract($record);
-                        Notification::make()->title('Factură creată cu succes')->success()->send();
-                        return redirect(InvoiceResource::getUrl('edit', ['record' => $invoice]));
-                    }),
+                    ->button(),
                 Action::make('descarca_pdf_contract')
                     ->label('Descarcă PDF')
                     ->icon('heroicon-o-arrow-down-tray')
