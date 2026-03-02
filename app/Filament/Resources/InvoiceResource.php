@@ -14,6 +14,8 @@ use App\Models\Product;
 use App\Models\VatRate;
 use App\Services\InvoiceService;
 use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\Grid;
+use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
@@ -22,6 +24,8 @@ use Filament\Forms\Components\Tabs\Tab;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\ToggleButtons;
+use Filament\Forms\Components\Actions\Action as FormAction;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\HtmlString;
 use Filament\Forms\Form;
 use Filament\Forms\Get;
@@ -57,7 +61,8 @@ class InvoiceResource extends Resource
                         ->preload()
                         ->required()
                         ->disabled(fn (?Invoice $record) => $record !== null)
-                        ->dehydrated(fn (?Invoice $record) => $record === null),
+                        ->dehydrated(fn (?Invoice $record) => $record === null)
+                        ->columnSpanFull(),
 
                     Select::make('contract_id')
                         ->label('Contract (opțional)')
@@ -67,7 +72,55 @@ class InvoiceResource extends Resource
                         ->nullable()
                         ->live()
                         ->disabled(fn (?Invoice $record) => $record !== null)
-                        ->dehydrated(fn (?Invoice $record) => $record === null),
+                        ->dehydrated(fn (?Invoice $record) => $record === null)
+                        ->columnSpanFull(),
+
+                    // virtual lock state – not persisted
+                    Hidden::make('number_locked')
+                        ->default(true)
+                        ->dehydrated(false)
+                        ->afterStateHydrated(fn ($component) => $component->state(true)),
+
+                    // ── Serie / Număr / Data emiterii – același rând ──────────────
+                    Grid::make(3)->schema([
+                        TextInput::make('series')
+                            ->label('Serie')
+                            ->maxLength(20)
+                            ->disabled()
+                            ->dehydrated(false),
+
+                        TextInput::make('number')
+                            ->label('Număr')
+                            ->numeric()
+                            ->live()
+                            ->disabled(fn (Get $get) => (bool) $get('number_locked'))
+                            ->dehydrated(true)
+                            ->suffixAction(
+                                FormAction::make('toggle_number_lock')
+                                    ->icon(fn (Get $get) => $get('number_locked') ? 'heroicon-m-lock-closed' : 'heroicon-m-lock-open')
+                                    ->tooltip(fn (Get $get) => $get('number_locked') ? 'Deblochează pentru editare manuală' : 'Blochează numărul')
+                                    ->color(fn (Get $get) => $get('number_locked') ? 'warning' : 'success')
+                                    ->action(fn (Set $set, Get $get) => $set('number_locked', ! (bool) $get('number_locked')))
+                            ),
+
+                        DatePicker::make('issue_date')
+                            ->label('Data emiterii')
+                            ->required()
+                            ->default(today())
+                            ->native(false)
+                            ->suffixIcon('heroicon-m-calendar')
+                            ->displayFormat('d.m.Y')
+                            ->live()
+                            ->afterStateUpdated(function ($state, Set $set, Get $get) {
+                                $term = $get('payment_term_days');
+                                $days = $term === 'alta'
+                                    ? (int) ($get('custom_term_days') ?: 30)
+                                    : (int) ($term ?: 30);
+                                if ($state && $days > 0) {
+                                    $set('due_date', Carbon::parse($state)->addDays($days)->format('Y-m-d'));
+                                }
+                            }),
+                    ])->columnSpanFull(),
 
                     Select::make('status')
                         ->label('Status')
@@ -77,42 +130,80 @@ class InvoiceResource extends Resource
                         ->default(InvoiceStatus::Draft->value)
                         ->required(),
 
-                    TextInput::make('series')
-                        ->label('Serie')
-                        ->maxLength(20),
-
-                    TextInput::make('number')
-                        ->label('Număr')
-                        ->numeric(),
-
                     Select::make('payment_method')
                         ->label('Modalitate plată')
                         ->options([
-                            'ordin_plata' => 'Ordin de plată',
-                            'numerar'     => 'Numerar',
-                            'card'        => 'Card bancar',
-                            'compensare'  => 'Compensare',
+                            'virament_bancar' => 'Virament bancar',
+                            'numerar'         => 'Numerar',
                         ])
-                        ->default('ordin_plata')
+                        ->default('virament_bancar')
                         ->required(),
+
+                    // ── Termen de plată + Scadență calculată ─────────────────────
+                    Select::make('payment_term_days')
+                        ->label('Termen de plată')
+                        ->options([
+                            7      => '7 zile',
+                            14     => '14 zile',
+                            30     => '30 zile',
+                            'alta' => 'Altă valoare…',
+                        ])
+                        ->default(30)
+                        ->live()
+                        ->dehydrated(false)
+                        ->afterStateHydrated(function ($component, ?Invoice $record) {
+                            if (! $record?->issue_date || ! $record?->due_date) {
+                                $component->state(30);
+                                return;
+                            }
+                            $diff = (int) $record->issue_date->diffInDays($record->due_date);
+                            $component->state(in_array($diff, [7, 14, 30], true) ? $diff : 'alta');
+                        })
+                        ->afterStateUpdated(function ($state, Set $set, Get $get) {
+                            if ($state === 'alta') {
+                                return;
+                            }
+                            $issueDate = $get('issue_date');
+                            $days = (int) ($state ?: 30);
+                            if ($issueDate && $days > 0) {
+                                $set('due_date', Carbon::parse($issueDate)->addDays($days)->format('Y-m-d'));
+                            }
+                        }),
+
+                    TextInput::make('custom_term_days')
+                        ->label('Număr zile')
+                        ->numeric()
+                        ->minValue(1)
+                        ->visible(fn (Get $get) => $get('payment_term_days') === 'alta')
+                        ->live()
+                        ->dehydrated(false)
+                        ->afterStateHydrated(function ($component, ?Invoice $record) {
+                            if (! $record?->issue_date || ! $record?->due_date) {
+                                return;
+                            }
+                            $diff = (int) $record->issue_date->diffInDays($record->due_date);
+                            if (! in_array($diff, [7, 14, 30], true)) {
+                                $component->state($diff);
+                            }
+                        })
+                        ->afterStateUpdated(function ($state, Set $set, Get $get) {
+                            $issueDate = $get('issue_date');
+                            $days = (int) ($state ?: 0);
+                            if ($issueDate && $days > 0) {
+                                $set('due_date', Carbon::parse($issueDate)->addDays($days)->format('Y-m-d'));
+                            }
+                        }),
+
+                    DatePicker::make('due_date')
+                        ->label('Data scadenței')
+                        ->native(false)
+                        ->suffixIcon('heroicon-m-calendar')
+                        ->displayFormat('d.m.Y')
+                        ->default(fn () => today()->addDays(30)),
 
                     TextInput::make('payment_reference')
                         ->label('Referință plată')
                         ->maxLength(100),
-
-                    DatePicker::make('issue_date')
-                        ->label('Data emiterii')
-                        ->required()
-                        ->default(today())
-                        ->native(false)
-                        ->suffixIcon('heroicon-m-calendar')
-                        ->displayFormat('d.m.Y'),
-
-                    DatePicker::make('due_date')
-                        ->label('Scadență')
-                        ->native(false)
-                        ->suffixIcon('heroicon-m-calendar')
-                        ->displayFormat('d.m.Y'),
 
                     DatePicker::make('delivery_date')
                         ->label('Data livrării')
