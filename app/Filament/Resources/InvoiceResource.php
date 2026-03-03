@@ -67,6 +67,10 @@ class InvoiceResource extends Resource
                     Select::make('contract_id')
                         ->label('Contract (opțional)')
                         ->relationship('contract', 'number')
+                        ->getOptionLabelFromRecordUsing(fn (\App\Models\Contract $r) =>
+                            'nr. ' . $r->number . ' din ' .
+                            ($r->signed_date ?? $r->start_date)?->format('d.m.Y')
+                        )
                         ->searchable()
                         ->preload()
                         ->nullable()
