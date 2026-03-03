@@ -155,6 +155,7 @@ class ProformaService
             'valid_until' => now()->addDays(30)->toDateString(),
             'lines'       => [
                 [
+                    'line_mode'   => 'serviciu',
                     'product_id'  => null,
                     'description' => "Servicii conform contract nr. {$contract->number} din {$contractDate}",
                     'quantity'    => 1,
