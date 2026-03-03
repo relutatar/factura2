@@ -65,10 +65,11 @@ class ProformaService
         );
 
         $proforma->update([
-            'status'      => ProformaStatus::Trimisa,
-            'series'      => $reservation['series'],
-            'number'      => $reservation['number'],
-            'full_number' => $reservation['full_number'],
+            'status'             => ProformaStatus::Trimisa,
+            'series'             => $reservation['series'],
+            'number'             => $reservation['number'],
+            'full_number'        => $reservation['full_number'],
+            'numbering_range_id' => $reservation['numbering_range_id'] ?? null,
         ]);
 
         GenerateProformaPdf::dispatch($proforma->fresh());

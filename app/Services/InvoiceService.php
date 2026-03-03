@@ -5,13 +5,12 @@ namespace App\Services;
 use App\Enums\BillingCycle;
 use App\Enums\InvoiceStatus;
 use App\Jobs\GenerateInvoicePdf;
+use App\Models\Company;
 use App\Models\Contract;
 use App\Models\Invoice;
 use App\Models\InvoiceLine;
-use App\Models\NumberingRange;
 use App\Models\VatRate;
 use Carbon\CarbonInterface;
-use Illuminate\Support\Facades\DB;
 
 class InvoiceService
 {
@@ -21,27 +20,17 @@ class InvoiceService
      */
     public function peekNextNumber(int $companyId, string $documentType, ?CarbonInterface $issuedAt = null): ?array
     {
-        $issuedAt = $issuedAt ?? now();
-        $year = (int) $issuedAt->year;
+        $company = Company::withoutGlobalScopes()->find($companyId);
 
-        $range = NumberingRange::withoutGlobalScopes()
-            ->where('company_id', $companyId)
-            ->where('document_type', $documentType)
-            ->where('fiscal_year', $year)
-            ->where('is_active', true)
-            ->first();
-
-        if (! $range || $range->next_number > $range->end_number) {
+        if (! $company) {
             return null;
         }
 
-        $number = (int) $range->next_number;
-
-        return [
-            'series'      => $range->series,
-            'number'      => $number,
-            'full_number' => $range->series . '-' . str_pad((string) $number, 4, '0', STR_PAD_LEFT),
-        ];
+        return app(DocumentNumberService::class)->peekNextNumber(
+            company: $company,
+            documentType: $documentType,
+            issuedAt: $issuedAt,
+        );
     }
 
     public function reserveNextNumber(
@@ -49,36 +38,17 @@ class InvoiceService
         string $documentType,
         ?CarbonInterface $issuedAt = null
     ): array {
-        $issuedAt = $issuedAt ?? now();
-        $type = $documentType;
-        $year = (int) $issuedAt->year;
+        $company = Company::withoutGlobalScopes()->find($companyId);
 
-        return DB::transaction(function () use ($companyId, $type, $year): array {
-            $range = NumberingRange::withoutGlobalScopes()
-                ->where('company_id', $companyId)
-                ->where('document_type', $type)
-                ->where('fiscal_year', $year)
-                ->where('is_active', true)
-                ->lockForUpdate()
-                ->first();
+        if (! $company) {
+            throw new \RuntimeException('Compania activă nu a fost găsită pentru numerotare.');
+        }
 
-            if (! $range) {
-                throw new \RuntimeException("Nu există plajă activă pentru {$type} în anul {$year}.");
-            }
-
-            if ($range->next_number > $range->end_number) {
-                throw new \RuntimeException("Plaja de numerotare {$range->series} este epuizată.");
-            }
-
-            $number = (int) $range->next_number;
-            $range->update(['next_number' => $number + 1]);
-
-            return [
-                'series'      => $range->series,
-                'number'      => $number,
-                'full_number' => $range->series . '-' . str_pad((string) $number, 4, '0', STR_PAD_LEFT),
-            ];
-        });
+        return app(DocumentNumberService::class)->reserveNextNumber(
+            company: $company,
+            documentType: $documentType,
+            issuedAt: $issuedAt,
+        );
     }
 
     /**

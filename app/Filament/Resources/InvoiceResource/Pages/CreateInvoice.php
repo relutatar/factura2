@@ -67,6 +67,7 @@ class CreateInvoice extends CreateRecord
         $data['series'] = $numbering['series'];
         $data['number'] = $numbering['number'];
         $data['full_number'] = $numbering['full_number'];
+        $data['numbering_range_id'] = $numbering['numbering_range_id'] ?? null;
 
         return $data;
     }

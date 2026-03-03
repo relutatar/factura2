@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Scopes\CompanyScope;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -24,8 +25,23 @@ class NumberingRange extends Model
     ];
 
     protected $casts = [
+        'fiscal_year' => 'integer',
+        'start_number' => 'integer',
+        'end_number' => 'integer',
+        'next_number' => 'integer',
         'is_active' => 'boolean',
     ];
+
+    protected static function booted(): void
+    {
+        static::addGlobalScope(new CompanyScope());
+
+        static::creating(function (self $model): void {
+            if (empty($model->company_id)) {
+                $model->company_id = session('active_company_id');
+            }
+        });
+    }
 
     public function company(): BelongsTo
     {

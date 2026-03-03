@@ -149,3 +149,11 @@ Unit tests:
 ## Notes
 - Keep numbering logic centralized in `DocumentNumberService`, never spread across resources/controllers.
 - Do not duplicate `Decizii Administrative` document-template logic in this module.
+
+---
+
+## Development Log
+
+| Date | Implemented | Pending | Blockers / Notes |
+|---|---|---|---|
+| 2026-03-03 | Implemented `DocumentNumberService` (preview + reservation + chronology + boundary checks), added `NumberingRangeResource` with Romanian labels/status/guardrails, added `numbering_range_id` linkage for invoices and proformas, and integrated centralized reservation through existing invoice/proforma flows | Mandatory automated tests for concurrency and chronology edge-cases | Existing invoice flow currently allocates number at create-time (draft), not strictly at finalize-time; retained for current UX stability |

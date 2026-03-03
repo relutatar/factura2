@@ -68,6 +68,11 @@ class Proforma extends Model
         return $this->hasMany(ProformaLine::class)->orderBy('sort_order');
     }
 
+    public function numberingRange(): BelongsTo
+    {
+        return $this->belongsTo(NumberingRange::class);
+    }
+
     // ─── Helpers ─────────────────────────────────────────────────────────────
 
     public function isEditable(): bool
