@@ -498,6 +498,7 @@ Every feature prompt file (`.github/prompts/*.prompt.md`) contains a `## Develop
 
 ### Rules
 - **At the end of each development session**, append a new entry to the `## Development Log` table in the relevant prompt file.
+- **Before any `git commit`**, update the relevant plans and prompt files so implementation tracking is accurate (including the proper `## Development Log` entry in the relevant `.github/prompts/*.prompt.md` file).
 - Each entry must include: date, what was implemented, what is still pending, and any blockers.
 - Use the acceptance criteria checkboxes (` - [x]` / ` - [ ]`) to reflect current completion state — update them as items are finished.
 - When all acceptance criteria are checked, mark the feature as `✅ Complete` in the log.
