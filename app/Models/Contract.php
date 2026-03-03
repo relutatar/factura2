@@ -58,4 +58,14 @@ class Contract extends Model
     {
         return $this->hasMany(Invoice::class);
     }
+
+    public function amendments(): HasMany
+    {
+        return $this->hasMany(ContractAmendment::class);
+    }
+
+    public function annexes(): HasMany
+    {
+        return $this->hasMany(ContractAnnex::class);
+    }
 }

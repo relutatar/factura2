@@ -13,6 +13,7 @@ use App\Models\Invoice;
 use App\Models\Product;
 use App\Models\VatRate;
 use App\Services\InvoiceService;
+use App\Services\ReceiptService;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Grid;
 use Filament\Forms\Components\Hidden;
@@ -526,6 +527,15 @@ class InvoiceResource extends Resource
                     ->money('RON')
                     ->sortable(),
 
+                TextColumn::make('receipt.full_number')
+                    ->label('Chitanță')
+                    ->default('—')
+                    ->url(fn (Invoice $record): ?string => $record->receipt
+                        ? \App\Filament\Resources\ReceiptResource::getUrl('view', ['record' => $record->receipt])
+                        : null
+                    )
+                    ->toggleable(isToggledHiddenByDefault: true),
+
                 TextColumn::make('efactura_status')
                     ->label('Status e-Factura')
                     ->badge()
@@ -576,6 +586,38 @@ class InvoiceResource extends Resource
                     ->action(function (Invoice $record) {
                         app(InvoiceService::class)->transition($record, InvoiceStatus::Platita);
                         Notification::make()->title('Factură marcată ca plătită')->success()->send();
+                    }),
+
+                Action::make('genereaza_chitanta')
+                    ->label('Generare chitanță')
+                    ->icon('heroicon-o-document-check')
+                    ->color('warning')
+                    ->requiresConfirmation()
+                    ->modalHeading('Generare chitanță')
+                    ->modalDescription('Se va emite o chitanță pentru această factură și va fi alocată automat numerotarea.')
+                    ->modalSubmitActionLabel('Generează chitanță')
+                    ->visible(fn (Invoice $record): bool =>
+                        $record->status === InvoiceStatus::Platita
+                        && $record->payment_method?->value === 'numerar'
+                        && ! $record->receipt
+                    )
+                    ->action(function (Invoice $record) {
+                        try {
+                            $receipt = app(ReceiptService::class)->createForInvoice($record);
+
+                            Notification::make()
+                                ->title('Chitanță generată cu succes')
+                                ->success()
+                                ->send();
+
+                            return redirect(\App\Filament\Resources\ReceiptResource::getUrl('view', ['record' => $receipt]));
+                        } catch (\Throwable $exception) {
+                            Notification::make()
+                                ->title('Eroare la generarea chitanței')
+                                ->body($exception->getMessage())
+                                ->danger()
+                                ->send();
+                        }
                     }),
 
                 Action::make('anuleaza')

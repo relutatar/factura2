@@ -3,9 +3,11 @@
 namespace App\Services;
 
 use App\Models\Contract;
+use App\Models\ContractAmendment;
 use App\Models\Decision;
 use App\Models\Invoice;
 use App\Models\Proforma;
+use App\Models\Receipt;
 use Barryvdh\DomPDF\Facade\Pdf;
 
 class PdfService
@@ -112,6 +114,59 @@ class PdfService
 
         Proforma::withoutGlobalScopes()
             ->where('id', $proforma->id)
+            ->update(['pdf_path' => $path]);
+
+        return $path;
+    }
+
+    /**
+     * Generate a PDF for the given receipt and store it.
+     * Returns the absolute path to the saved file.
+     */
+    public function generateReceipt(Receipt $receipt): string
+    {
+        $receipt->loadMissing(['company', 'invoice.client']);
+
+        $dir = storage_path("app/receipts/{$receipt->company_id}");
+        if (! is_dir($dir)) {
+            mkdir($dir, 0755, true);
+        }
+
+        $filename = preg_replace('/[^A-Za-z0-9\-_]/', '_', $receipt->full_number ?: ('receipt-' . $receipt->id));
+        $path = "{$dir}/{$filename}.pdf";
+
+        Pdf::loadView('pdf.receipt', compact('receipt'))
+            ->setPaper('a4', 'portrait')
+            ->save($path);
+
+        Receipt::withoutGlobalScopes()
+            ->where('id', $receipt->id)
+            ->update(['pdf_path' => $path]);
+
+        return $path;
+    }
+
+    /**
+     * Generate a PDF for a contract amendment and store it.
+     * Returns the absolute path to the saved file.
+     */
+    public function generateContractAmendment(ContractAmendment $amendment): string
+    {
+        $amendment->loadMissing(['contract.company', 'contract.client']);
+
+        $dir = storage_path('app/amendments');
+        if (! is_dir($dir)) {
+            mkdir($dir, 0755, true);
+        }
+
+        $path = "{$dir}/{$amendment->id}.pdf";
+
+        Pdf::loadView('pdf.contract-amendment', compact('amendment'))
+            ->setPaper('a4', 'portrait')
+            ->save($path);
+
+        ContractAmendment::withoutGlobalScopes()
+            ->where('id', $amendment->id)
             ->update(['pdf_path' => $path]);
 
         return $path;

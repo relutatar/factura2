@@ -367,7 +367,10 @@ class ContractResource extends Resource
 
     public static function getRelations(): array
     {
-        return [];
+        return [
+            \App\Filament\Resources\ContractResource\RelationManagers\AmendmentsRelationManager::class,
+            \App\Filament\Resources\ContractResource\RelationManagers\AnnexesRelationManager::class,
+        ];
     }
 
     public static function getPages(): array
@@ -375,6 +378,7 @@ class ContractResource extends Resource
         return [
             'index'  => Pages\ListContracts::route('/'),
             'create' => Pages\CreateContract::route('/create'),
+            'view'   => Pages\ViewContract::route('/{record}'),
             'edit'   => Pages\EditContract::route('/{record}/edit'),
         ];
     }

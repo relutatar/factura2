@@ -1,9 +1,11 @@
 <?php
 
 use App\Models\Contract;
+use App\Models\ContractAmendment;
 use App\Models\Decision;
 use App\Models\Invoice;
 use App\Models\Proforma;
+use App\Models\Receipt;
 use App\Services\PdfService;
 use Illuminate\Support\Facades\Route;
 
@@ -52,3 +54,23 @@ Route::get('/proformas/{proforma}/pdf', function (Proforma $proforma, PdfService
         'Content-Type' => 'application/pdf',
     ]);
 })->middleware(['auth'])->name('proformas.pdf');
+
+Route::get('/receipts/{receipt}/pdf', function (Receipt $receipt, PdfService $pdfService) {
+    $path = $receipt->pdf_path;
+
+    if (! $path || ! file_exists($path)) {
+        $path = $pdfService->generateReceipt($receipt);
+    }
+
+    return response()->download($path, 'chitanta-' . $receipt->full_number . '.pdf', [
+        'Content-Type' => 'application/pdf',
+    ]);
+})->middleware(['auth'])->name('receipts.pdf');
+
+Route::get('/contract-amendments/{amendment}/pdf', function (ContractAmendment $amendment, PdfService $pdfService) {
+    $path = $pdfService->generateContractAmendment($amendment);
+
+    return response()->download($path, 'act-aditional-' . $amendment->amendment_number . '.pdf', [
+        'Content-Type' => 'application/pdf',
+    ]);
+})->middleware(['auth'])->name('contract-amendments.pdf');

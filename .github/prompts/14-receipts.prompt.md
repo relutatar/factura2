@@ -420,15 +420,15 @@ Route::get('/receipts/{receipt}/pdf', function (\App\Models\Receipt $receipt) {
 ---
 
 ## Acceptance Criteria
-- [ ] `receipts` tabel creat prin migrare.
-- [ ] Chitanța se generează prin butonul „Generare chitanță" din `InvoiceResource`, vizibil doar pe facturile `platita` + `payment_method = numerar` fără chitanță deja emisă.
-- [ ] Dacă nu există plajă activă de chitanțe pentru an, butonul afișează o notificare de eroare explicită.
-- [ ] Numerotarea chitanțelor este imutabilă după emitere.
-- [ ] PDF chitanță conține: firmă, client, factură aferentă, sumă, dată, semnătura.
-- [ ] `ReceiptResource` este read-only (fără Create/Edit).
-- [ ] Anulare chitanță posibilă din resursă.
-- [ ] Coloana `Chitanță` vizibilă în `InvoiceResource` (link către chitanță).
-- [ ] Toate etichetele și notificările sunt în **română**.
+- [x] `receipts` tabel creat prin migrare.
+- [x] Chitanța se generează prin butonul „Generare chitanță" din `InvoiceResource`, vizibil doar pe facturile `platita` + `payment_method = numerar` fără chitanță deja emisă.
+- [x] Dacă nu există plajă activă de chitanțe pentru an, butonul afișează o notificare de eroare explicită.
+- [x] Numerotarea chitanțelor este imutabilă după emitere.
+- [x] PDF chitanță conține: firmă, client, factură aferentă, sumă, dată, semnătura.
+- [x] `ReceiptResource` este read-only (fără Create/Edit).
+- [x] Anulare chitanță posibilă din resursă.
+- [x] Coloana `Chitanță` vizibilă în `InvoiceResource` (link către chitanță).
+- [x] Toate etichetele și notificările sunt în **română**.
 
 ---
 
@@ -437,3 +437,4 @@ Route::get('/receipts/{receipt}/pdf', function (\App\Models\Receipt $receipt) {
 | Date | Implemented | Pending | Blockers / Notes |
 |---|---|---|---|
 | — | — | Everything | Not started |
+| 2026-03-03 | Implemented complete receipts module: `ReceiptStatus` enum, `receipts` migration, `Receipt` model with CompanyScope + immutable numbering guard, `ReceiptService`, `GenerateReceiptPdf` job, receipt PDF template, `ReceiptResource` read-only (index + view + cancel + download), receipt PDF route, and invoice integration (`Generare chitanță` action + `Chitanță` column link) | — | ✅ Complete |

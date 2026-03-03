@@ -6,6 +6,7 @@ use App\Models\Company;
 use App\Models\Invoice;
 use App\Models\NumberingRange;
 use App\Models\Proforma;
+use App\Models\Receipt;
 use Carbon\Carbon;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Facades\DB;
@@ -131,6 +132,20 @@ class DocumentNumberService
             return $maxNumber !== null ? (int) $maxNumber : null;
         }
 
+        if ($range->document_type === 'chitanta') {
+            $maxNumber = Receipt::withoutGlobalScopes()
+                ->where('company_id', (int) $range->company_id)
+                ->where('series', (string) $range->series)
+                ->when(
+                    $workPointCode === null,
+                    fn ($query) => $query->whereNull('work_point_code'),
+                    fn ($query) => $query->where('work_point_code', $workPointCode)
+                )
+                ->max('number');
+
+            return $maxNumber !== null ? (int) $maxNumber : null;
+        }
+
         return null;
     }
 
@@ -222,6 +237,24 @@ class DocumentNumberService
 
         if ($documentType === 'proforma') {
             $query = Proforma::withoutGlobalScopes()
+                ->where('company_id', $companyId)
+                ->where('series', $series)
+                ->when(
+                    $workPointCode === null,
+                    fn ($builder) => $builder->whereNull('work_point_code'),
+                    fn ($builder) => $builder->where('work_point_code', $workPointCode)
+                )
+                ->whereNotNull('number')
+                ->whereNotNull('issue_date');
+
+            return $query
+                ->orderByDesc('number')
+                ->first(['number', 'issue_date'])
+                ?->toArray();
+        }
+
+        if ($documentType === 'chitanta') {
+            $query = Receipt::withoutGlobalScopes()
                 ->where('company_id', $companyId)
                 ->where('series', $series)
                 ->when(

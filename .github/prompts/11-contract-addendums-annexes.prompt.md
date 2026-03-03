@@ -516,15 +516,15 @@ Route::get('/contract-amendments/{amendment}/pdf', function (\App\Models\Contrac
 ---
 
 ## Acceptance Criteria
-- [ ] `contract_amendments` și `contract_annexes` tabele create prin migrare.
-- [ ] `ContractAmendment` are numerotare automată per contract (nr. 1, 2, 3...).
-- [ ] Statusul actului adițional poate fi: Draft → Semnat / Anulat.
-- [ ] La semnare, `content_snapshot` este înghețat (conținut nu mai poate fi editat).
-- [ ] PDF-ul actului adițional se poate genera și descărca.
-- [ ] Anexa poate fi ori fișier atașat ori document generat din template (sau ambele).
-- [ ] Relation managers vizibile în pagina de vizualizare a contractului.
-- [ ] Modulul `acte_aditionale` controlează vizibilitatea `ContractAmendmentResource`.
-- [ ] Toate etichetele și notificările sunt în **română**.
+- [x] `contract_amendments` și `contract_annexes` tabele create prin migrare.
+- [x] `ContractAmendment` are numerotare automată per contract (nr. 1, 2, 3...).
+- [x] Statusul actului adițional poate fi: Draft → Semnat / Anulat.
+- [x] La semnare, `content_snapshot` este înghețat (conținut nu mai poate fi editat).
+- [x] PDF-ul actului adițional se poate genera și descărca.
+- [x] Anexa poate fi ori fișier atașat ori document generat din template (sau ambele).
+- [x] Relation managers vizibile în pagina de vizualizare a contractului.
+- [x] Modulul `acte_aditionale` controlează vizibilitatea `ContractAmendmentResource`.
+- [x] Toate etichetele și notificările sunt în **română**.
 
 ---
 
@@ -533,3 +533,4 @@ Route::get('/contract-amendments/{amendment}/pdf', function (\App\Models\Contrac
 | Date | Implemented | Pending | Blockers / Notes |
 |---|---|---|---|
 | — | — | Everything | Not started |
+| 2026-03-03 | Implemented module 11 end-to-end: `ContractAmendmentStatus` enum; migrations/tables for `document_templates`, `contract_amendments`, `contract_annexes`; Eloquent models with CompanyScope; `DocumentTemplateService`; Filament resources for amendments and annexes (Romanian labels/actions), contract relation managers for Amendments/Annexes, `ContractResource` view page integration, amendment status transitions with snapshot freeze on signing, amendment PDF blade + `PdfService::generateContractAmendment()`, PDF route for amendment download | Dedicated automated tests for amendments/annexes flows | Keeps DocumentTemplate as minimal stub model/service required by this prompt |
