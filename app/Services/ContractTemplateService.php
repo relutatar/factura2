@@ -89,6 +89,7 @@ class ContractTemplateService
             '{{contract.start_date}}'     => 'Data început (d.m.Y)',
             '{{contract.end_date}}'       => 'Data sfârșit (d.m.Y) sau "nedeterminat"',
             '{{contract.value}}'          => 'Valoare contract formatată',
+            '{{contract.billing_cycle}}'  => 'Ciclu facturare (Lunar / Trimestrial / Anual / Unic)',
             '{{contract.notes}}'          => 'Observații contract',
         ];
 
@@ -297,6 +298,7 @@ TPL;
 
 <h3>IV. Valoare și plată</h3>
 <p><strong>Valoare lucrare:</strong> {{contract.value}}</p>
+<p><strong>Ciclu facturare:</strong> {{contract.billing_cycle}}</p>
 <p>Plata se efectuează integral, conform facturii emise după finalizarea lucrării sau conform termenelor agreate de părți.</p>
 
 <h3>V. Recepția lucrării</h3>
