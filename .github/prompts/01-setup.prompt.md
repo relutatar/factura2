@@ -285,7 +285,7 @@ class CompanySeeder extends Seeder
     public function run(): void
     {
         Company::updateOrCreate(
-            ['cif' => '27864858'],
+            ['cif' => 'RO27864858'],
             [
                 'name'           => 'NOD CONSULTING SRL',
                 'reg_com'        => 'J2010000868267',
@@ -468,7 +468,7 @@ docker compose exec app php artisan migrate --seed
 ## Acceptance Criteria
 - [x] `docker compose up -d` starts all 5 services (app, nginx, mysql, queue, scheduler) with no errors.
 - [x] `docker compose exec app php artisan migrate --seed` completes without errors.
-- [x] Two companies exist in `companies` table: NOD CONSULTING SRL (CUI 27864858) and PAINTBALL MUREȘ SRL (CUI 36408451).
+- [x] Two companies exist in `companies` table: NOD CONSULTING SRL (CUI RO27864858) and PAINTBALL MUREȘ SRL (CUI 36408451).
 - [x] `http://localhost:8080/admin` shows the Filament login page. *(port remapped to 8080 – host port 80 occupied by Apache2)*
 - [x] After login, the Company Switcher dropdown is visible in the top bar.
 - [x] Switching companies updates `session('active_company_id')`.
