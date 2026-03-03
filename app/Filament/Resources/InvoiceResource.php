@@ -96,7 +96,7 @@ class InvoiceResource extends Resource
                             ->numeric()
                             ->live()
                             ->disabled(fn (Get $get) => (bool) $get('number_locked'))
-                            ->dehydrated(true)
+                            ->dehydrated(fn (?Invoice $record) => $record !== null)
                             ->suffixAction(
                                 FormAction::make('toggle_number_lock')
                                     ->icon(fn (Get $get) => $get('number_locked') ? 'heroicon-m-lock-closed' : 'heroicon-m-lock-open')
@@ -544,7 +544,7 @@ class InvoiceResource extends Resource
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->recordClasses(fn (Invoice $record) => $record->isOverdue() ? 'bg-red-50 dark:bg-red-950' : null)
-            ->defaultSort('created_at', 'desc')
+            ->defaultSort('number', 'desc')
             ->actions([
                 ViewAction::make()->label('Vezi'),
 

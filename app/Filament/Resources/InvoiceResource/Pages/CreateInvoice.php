@@ -6,6 +6,7 @@ use App\Filament\Resources\InvoiceResource;
 use App\Models\Contract;
 use App\Services\InvoiceService;
 use Filament\Resources\Pages\CreateRecord;
+use Illuminate\Validation\ValidationException;
 
 class CreateInvoice extends CreateRecord
 {
@@ -40,28 +41,40 @@ class CreateInvoice extends CreateRecord
         $this->callHook('afterFill');
     }
 
+    protected function mutateFormDataBeforeCreate(array $data): array
+    {
+        $companyId = (int) session('active_company_id');
+
+        if ($companyId <= 0) {
+            throw ValidationException::withMessages([
+                'data.number' => 'Nu există companie activă pentru alocarea numărului de factură.',
+            ]);
+        }
+
+        try {
+            $numbering = app(InvoiceService::class)->reserveNextNumber(
+                $companyId,
+                'factura',
+                now()
+            );
+        } catch (\RuntimeException $exception) {
+            throw ValidationException::withMessages([
+                'data.number' => $exception->getMessage(),
+            ]);
+        }
+
+        $data['company_id'] = $companyId;
+        $data['series'] = $numbering['series'];
+        $data['number'] = $numbering['number'];
+        $data['full_number'] = $numbering['full_number'];
+
+        return $data;
+    }
+
     protected function afterCreate(): void
     {
         $invoice = $this->record;
-        $svc = app(InvoiceService::class);
 
-        // Auto-assign series/number/full_number if not already set
-        if (empty($invoice->full_number)) {
-            if (! empty($invoice->series) && ! empty($invoice->number)) {
-                $invoice->update([
-                    'full_number' => $invoice->series . '-' . str_pad((string) $invoice->number, 4, '0', STR_PAD_LEFT),
-                ]);
-            } else {
-                $numbering = $svc->reserveNextNumber(
-                    $invoice->company_id,
-                    'factura',
-                    $invoice->issue_date
-                );
-
-                $invoice->update($numbering);
-            }
-        }
-
-        $svc->recalculateTotals($invoice);
+        app(InvoiceService::class)->recalculateTotals($invoice);
     }
 }
