@@ -180,7 +180,43 @@ class ProformaResource extends Resource
                                     ->mapWithKeys(fn (BillingCycle $c) => [$c->value => $c->label()])
                                     ->all()
                                 )
-                                ->default(BillingCycle::Unic->value)
+                                ->default(function (Get $get) {
+                                    $contractId = $get('../../contract_id');
+                                    $contract   = $contractId ? Contract::find($contractId) : null;
+                                    $billingCycle = $contract?->billing_cycle?->value
+                                        ?? (string) data_get($contract?->additional_attributes, 'billing_cycle', '');
+                                    $allowedValues = array_map(
+                                        static fn (BillingCycle $cycle): string => $cycle->value,
+                                        BillingCycle::cases(),
+                                    );
+
+                                    return in_array($billingCycle, $allowedValues, true)
+                                        ? $billingCycle
+                                        : BillingCycle::Unic->value;
+                                })
+                                ->afterStateHydrated(function ($component, Get $get) {
+                                    if ($get('line_mode') === 'produs') {
+                                        return;
+                                    }
+
+                                    $description = trim((string) ($get('description') ?? ''));
+                                    if (stripos($description, 'Servicii conform contract') !== 0) {
+                                        return;
+                                    }
+
+                                    $contractId = $get('../../contract_id');
+                                    $contract   = $contractId ? Contract::find($contractId) : null;
+                                    $billingCycle = $contract?->billing_cycle?->value
+                                        ?? (string) data_get($contract?->additional_attributes, 'billing_cycle', '');
+                                    $allowedValues = array_map(
+                                        static fn (BillingCycle $cycle): string => $cycle->value,
+                                        BillingCycle::cases(),
+                                    );
+
+                                    if (in_array($billingCycle, $allowedValues, true)) {
+                                        $component->state($billingCycle);
+                                    }
+                                })
                                 ->searchable()
                                 ->required()
                                 ->visible(fn (Get $get) => $get('line_mode') !== 'produs'),
