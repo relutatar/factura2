@@ -34,13 +34,6 @@ class ContractTemplateService
             'prestari_servicii_unic' => [],
             default => [
                 [
-                    'key'        => 'billing_cycle',
-                    'label'      => 'Ciclu facturare',
-                    'field_type' => 'select',
-                    'required'   => false,
-                    'options'    => ['Lunar', 'Trimestrial', 'Anual', 'Unic'],
-                ],
-                [
                     'key'        => 'frequency',
                     'label'      => 'Frecvență servicii',
                     'field_type' => 'select',
