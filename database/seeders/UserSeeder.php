@@ -21,7 +21,7 @@ class UserSeeder extends Seeder
 
         // One regular user per company
         $companyUsers = [
-            '27864858' => ['name' => 'User NOD',      'email' => 'user@nod.ro'],
+            'RO27864858' => ['name' => 'User NOD',      'email' => 'user@nod.ro'],
             '36408451' => ['name' => 'User Paintball','email' => 'user@paintball.ro'],
         ];
 
