@@ -61,8 +61,7 @@ class InvoiceResource extends Resource
                         ->preload()
                         ->required()
                         ->disabled(fn (?Invoice $record, $livewire) => $record !== null || ($livewire->prefillContractId ?? null) !== null)
-                        ->dehydrated(fn (?Invoice $record) => $record === null)
-                        ->columnSpanFull(),
+                        ->dehydrated(fn (?Invoice $record) => $record === null),
 
                     Select::make('contract_id')
                         ->label('Contract (opțional)')
@@ -76,8 +75,7 @@ class InvoiceResource extends Resource
                         ->nullable()
                         ->live()
                         ->disabled(fn (?Invoice $record, $livewire) => $record !== null || ($livewire->prefillContractId ?? null) !== null)
-                        ->dehydrated(fn (?Invoice $record) => $record === null)
-                        ->columnSpanFull(),
+                        ->dehydrated(fn (?Invoice $record) => $record === null),
 
                     // virtual lock state – not persisted
                     Hidden::make('number_locked')
@@ -85,8 +83,8 @@ class InvoiceResource extends Resource
                         ->dehydrated(false)
                         ->afterStateHydrated(fn ($component) => $component->state(true)),
 
-                    // ── Serie / Număr / Data emiterii – același rând ──────────────
-                    Grid::make(3)->schema([
+                    // ── Serie / Număr / Data emiterii / Status – același rând ──────────────
+                    Grid::make(4)->schema([
                         TextInput::make('series')
                             ->label('Serie')
                             ->maxLength(20)
@@ -124,47 +122,45 @@ class InvoiceResource extends Resource
                                     $set('due_date', Carbon::parse($state)->addDays($days)->format('Y-m-d'));
                                 }
                             }),
+
+                        Select::make('status')
+                            ->label('Status')
+                            ->options(collect(InvoiceStatus::cases())->mapWithKeys(
+                                fn (InvoiceStatus $s) => [$s->value => $s->label()]
+                            ))
+                            ->default(InvoiceStatus::Draft->value)
+                            ->required(),
                     ])->columnSpanFull(),
 
-                    Select::make('status')
-                        ->label('Status')
-                        ->options(collect(InvoiceStatus::cases())->mapWithKeys(
-                            fn (InvoiceStatus $s) => [$s->value => $s->label()]
-                        ))
-                        ->default(InvoiceStatus::Draft->value)
-                        ->required(),
+                    // ── Modalitate plată + Termen + Scadență (același rând) ──────────
+                    Grid::make(4)->schema([
+                        Select::make('payment_method')
+                            ->label('Modalitate plată')
+                            ->options([
+                                'virament_bancar' => 'Virament bancar',
+                                'numerar'         => 'Numerar',
+                            ])
+                            ->default('virament_bancar')
+                            ->required()
+                            ->columnSpan(1),
 
-                    Select::make('payment_method')
-                        ->label('Modalitate plată')
-                        ->options([
-                            'virament_bancar' => 'Virament bancar',
-                            'numerar'         => 'Numerar',
-                        ])
-                        ->default('virament_bancar')
-                        ->required(),
-
-                    // ── Termen de plată + Scadență (2 coloane; prima se sparge în 2 doar la "Altă valoare") ──────────
-                    Grid::make(2)->schema([
                         Grid::make(2)->schema([
                             Select::make('payment_term_days')
                                 ->label('Termen de plată')
                                 ->options([
-                                    7      => '7 zile',
-                                    14     => '14 zile',
-                                    30     => '30 zile',
+                                    '7'    => '7 zile',
+                                    '14'   => '14 zile',
+                                    '30'   => '30 zile',
                                     'alta' => 'Altă valoare…',
                                 ])
                                 ->native(false)
-                                ->default(30)
+                                ->default('30')
                                 ->live()
                                 ->dehydrated(false)
-                                ->afterStateHydrated(function ($component, ?Invoice $record) {
-                                    if (! $record?->issue_date || ! $record?->due_date) {
-                                        $component->state(30);
-                                        return;
+                                ->afterStateHydrated(function ($component, $state) {
+                                    if (blank($state)) {
+                                        $component->state('30');
                                     }
-                                    $diff = (int) $record->issue_date->diffInDays($record->due_date);
-                                    $component->state(in_array($diff, [7, 14, 30], true) ? $diff : 'alta');
                                 })
                                 ->afterStateUpdated(function ($state, Set $set, Get $get) {
                                     $issueDate = $get('issue_date');
@@ -208,7 +204,7 @@ class InvoiceResource extends Resource
                                         return;
                                     }
 
-                                    $diff = (int) $record->issue_date->diffInDays($record->due_date);
+                                    $diff = self::calendarDaysDiff($record->issue_date, $record->due_date);
                                     $component->state($diff > 0 ? $diff : 30);
                                 })
                                 ->afterStateUpdated(function ($state, Set $set, Get $get) {
@@ -222,7 +218,7 @@ class InvoiceResource extends Resource
                                         $set('due_date', Carbon::parse($issueDate)->addDays($days)->format('Y-m-d'));
                                     }
                                 }),
-                        ])->columnSpan(1),
+                        ])->columnSpan(2),
 
                         DatePicker::make('due_date')
                             ->label('Data scadenței')
@@ -230,22 +226,56 @@ class InvoiceResource extends Resource
                             ->suffixIcon('heroicon-m-calendar')
                             ->displayFormat('d.m.Y')
                             ->default(fn () => today()->addDays(30))
+                            ->afterStateHydrated(function ($state, Get $get, Set $set) {
+                                $issueDate = $get('issue_date');
+                                if (! $issueDate || ! $state) {
+                                    return;
+                                }
+
+                                $diff = self::calendarDaysDiff($issueDate, $state);
+                                if (in_array($diff, [7, 14, 30], true)) {
+                                    $set('payment_term_days', (string) $diff);
+                                    $set('custom_term_days', $diff);
+                                } elseif ($diff > 0) {
+                                    $set('payment_term_days', 'alta');
+                                    $set('custom_term_days', $diff);
+                                }
+                            })
+                            ->afterStateUpdated(function ($state, Get $get, Set $set) {
+                                $issueDate = $get('issue_date');
+                                if (! $issueDate || ! $state) {
+                                    return;
+                                }
+
+                                $diff = self::calendarDaysDiff($issueDate, $state);
+                                if (in_array($diff, [7, 14, 30], true)) {
+                                    $set('payment_term_days', (string) $diff);
+                                    $set('custom_term_days', $diff);
+                                } elseif ($diff > 0) {
+                                    $set('payment_term_days', 'alta');
+                                    $set('custom_term_days', $diff);
+                                }
+                            })
                             ->columnSpan(1),
                     ])->columnSpanFull(),
 
-                    TextInput::make('payment_reference')
-                        ->label('Referință plată')
-                        ->maxLength(100),
+                    Grid::make(3)->schema([
+                        TextInput::make('payment_reference')
+                            ->label('Referință plată')
+                            ->maxLength(100)
+                            ->columnSpan(2),
 
-                    DatePicker::make('delivery_date')
-                        ->label('Data livrării')
-                        ->native(false)
-                        ->suffixIcon('heroicon-m-calendar')
-                        ->displayFormat('d.m.Y'),
+                        DatePicker::make('delivery_date')
+                            ->label('Data livrării')
+                            ->native(false)
+                            ->suffixIcon('heroicon-m-calendar')
+                            ->displayFormat('d.m.Y')
+                            ->columnSpan(1),
+                    ])->columnSpanFull(),
 
                     Textarea::make('notes')
                         ->label('Observații')
-                        ->rows(3)
+                        ->rows(2)
                         ->columnSpanFull(),
                 ])->columns(2),
 
@@ -619,6 +649,18 @@ class InvoiceResource extends Resource
     public static function getRelations(): array
     {
         return [];
+    }
+
+    private static function calendarDaysDiff(mixed $issueDate, mixed $dueDate): int
+    {
+        if (blank($issueDate) || blank($dueDate)) {
+            return 0;
+        }
+
+        $issue = Carbon::parse($issueDate, 'UTC')->startOfDay();
+        $due = Carbon::parse($dueDate, 'UTC')->startOfDay();
+
+        return (int) $issue->diffInDays($due, false);
     }
 
     public static function getPages(): array
