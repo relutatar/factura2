@@ -16,7 +16,7 @@ class Invoice extends Model
 
     protected $fillable = [
         'company_id', 'client_id', 'contract_id', 'status',
-        'series', 'number', 'full_number', 'numbering_range_id', 'issue_date', 'due_date',
+        'series', 'number', 'full_number', 'numbering_range_id', 'work_point_code', 'issue_date', 'due_date',
         'delivery_date', 'subtotal', 'vat_total', 'total', 'currency',
         'payment_method', 'payment_reference', 'paid_at',
         'efactura_id', 'efactura_status', 'pdf_path', 'notes',
@@ -38,6 +38,20 @@ class Invoice extends Model
         static::creating(function (self $model) {
             if (empty($model->company_id)) {
                 $model->company_id = session('active_company_id');
+            }
+        });
+
+        static::updating(function (self $model): void {
+            $statusValue = $model->status instanceof InvoiceStatus
+                ? $model->status->value
+                : (string) $model->status;
+
+            if ($statusValue === InvoiceStatus::Draft->value) {
+                return;
+            }
+
+            if ($model->isDirty(['series', 'number', 'full_number', 'numbering_range_id', 'work_point_code'])) {
+                throw new \RuntimeException('Numerotarea facturii nu mai poate fi modificată după emitere.');
             }
         });
     }

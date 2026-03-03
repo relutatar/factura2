@@ -43,6 +43,7 @@ class DocumentNumberService
             'series' => (string) $range->series,
             'number' => $number,
             'full_number' => $this->formatFullNumber((string) $range->series, $number),
+            'work_point_code' => $range->work_point_code,
         ];
     }
 
@@ -90,8 +91,47 @@ class DocumentNumberService
                 'series' => (string) $range->series,
                 'number' => $number,
                 'full_number' => $this->formatFullNumber((string) $range->series, $number),
+                'work_point_code' => $range->work_point_code,
             ];
         });
+    }
+
+    /**
+     * Return max used number for the same scope; null when unused.
+     */
+    public function getMaxUsedNumberInRange(NumberingRange $range): ?int
+    {
+        $workPointCode = $this->normalizeWorkPointCode($range->work_point_code);
+
+        if ($range->document_type === 'factura') {
+            $maxNumber = Invoice::withoutGlobalScopes()
+                ->where('company_id', (int) $range->company_id)
+                ->where('series', (string) $range->series)
+                ->when(
+                    $workPointCode === null,
+                    fn ($query) => $query->whereNull('work_point_code'),
+                    fn ($query) => $query->where('work_point_code', $workPointCode)
+                )
+                ->max('number');
+
+            return $maxNumber !== null ? (int) $maxNumber : null;
+        }
+
+        if ($range->document_type === 'proforma') {
+            $maxNumber = Proforma::withoutGlobalScopes()
+                ->where('company_id', (int) $range->company_id)
+                ->where('series', (string) $range->series)
+                ->when(
+                    $workPointCode === null,
+                    fn ($query) => $query->whereNull('work_point_code'),
+                    fn ($query) => $query->where('work_point_code', $workPointCode)
+                )
+                ->max('number');
+
+            return $maxNumber !== null ? (int) $maxNumber : null;
+        }
+
+        return null;
     }
 
     /**
@@ -166,6 +206,11 @@ class DocumentNumberService
             $query = Invoice::withoutGlobalScopes()
                 ->where('company_id', $companyId)
                 ->where('series', $series)
+                ->when(
+                    $workPointCode === null,
+                    fn ($builder) => $builder->whereNull('work_point_code'),
+                    fn ($builder) => $builder->where('work_point_code', $workPointCode)
+                )
                 ->whereNotNull('number')
                 ->whereNotNull('issue_date');
 
@@ -179,6 +224,11 @@ class DocumentNumberService
             $query = Proforma::withoutGlobalScopes()
                 ->where('company_id', $companyId)
                 ->where('series', $series)
+                ->when(
+                    $workPointCode === null,
+                    fn ($builder) => $builder->whereNull('work_point_code'),
+                    fn ($builder) => $builder->where('work_point_code', $workPointCode)
+                )
                 ->whereNotNull('number')
                 ->whereNotNull('issue_date');
 
@@ -205,6 +255,7 @@ class DocumentNumberService
             ->where('document_type', $documentType)
             ->where('fiscal_year', $year)
             ->where('is_active', true)
+            ->whereNull('deleted_at')
             ->when(
                 $workPointCode === null,
                 fn ($builder) => $builder->whereNull('work_point_code'),

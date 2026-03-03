@@ -15,7 +15,7 @@ class Proforma extends Model
 
     protected $fillable = [
         'company_id', 'client_id', 'contract_id', 'invoice_id',
-        'status', 'series', 'number', 'full_number', 'numbering_range_id',
+        'status', 'series', 'number', 'full_number', 'numbering_range_id', 'work_point_code',
         'issue_date', 'valid_until',
         'subtotal', 'vat_total', 'total', 'currency',
         'pdf_path', 'notes',
@@ -37,6 +37,20 @@ class Proforma extends Model
         static::creating(function (self $model) {
             if (empty($model->company_id)) {
                 $model->company_id = session('active_company_id');
+            }
+        });
+
+        static::updating(function (self $model): void {
+            $statusValue = $model->status instanceof ProformaStatus
+                ? $model->status->value
+                : (string) $model->status;
+
+            if ($statusValue === ProformaStatus::Draft->value) {
+                return;
+            }
+
+            if ($model->isDirty(['series', 'number', 'full_number', 'numbering_range_id', 'work_point_code'])) {
+                throw new \RuntimeException('Numerotarea proformei nu mai poate fi modificată după emitere.');
             }
         });
     }

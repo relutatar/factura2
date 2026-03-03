@@ -12,31 +12,54 @@ class NumberingRangeSeeder extends Seeder
     {
         $year = (int) now()->year;
 
-        $rangesByCif = [
-            'RO27864858' => 'NOD',
-            '36408451' => 'PBM',
+        $seriesByCompany = [
+            'NOD CONSULTING' => [
+                'factura' => 'NOD',
+                'proforma' => 'PNOD',
+                'chitanta' => 'CHNOD',
+                'aviz' => 'AVNOD',
+            ],
+            'PAINTBALL MUREȘ' => [
+                'factura' => 'PBM',
+                'proforma' => 'PPBM',
+                'chitanta' => 'CHPBM',
+                'aviz' => 'AVPBM',
+            ],
+            'PAINTBALL MURES' => [
+                'factura' => 'PBM',
+                'proforma' => 'PPBM',
+                'chitanta' => 'CHPBM',
+                'aviz' => 'AVPBM',
+            ],
         ];
 
-        $companies = Company::withoutGlobalScopes()->get(['id', 'cif']);
+        $companies = Company::withoutGlobalScopes()->get(['id', 'name']);
 
         foreach ($companies as $company) {
-            $series = $rangesByCif[$company->cif] ?? 'F';
+            $seriesMap = $seriesByCompany[$company->name] ?? [
+                'factura' => 'F',
+                'proforma' => 'PF',
+                'chitanta' => 'CH',
+                'aviz' => 'AV',
+            ];
 
-            NumberingRange::updateOrCreate(
-                [
-                    'company_id'      => $company->id,
-                    'document_type'   => 'factura',
-                    'fiscal_year'     => $year,
-                    'series'          => $series,
-                    'work_point_code' => null,
-                ],
-                [
-                    'start_number' => 1,
-                    'end_number'   => 999999,
-                    'next_number'  => 1,
-                    'is_active'    => true,
-                ]
-            );
+            foreach ($seriesMap as $documentType => $series) {
+                NumberingRange::updateOrCreate(
+                    [
+                        'company_id' => $company->id,
+                        'document_type' => $documentType,
+                        'fiscal_year' => $year,
+                        'series' => $series,
+                        'work_point_code' => null,
+                    ],
+                    [
+                        'start_number' => 1,
+                        'end_number' => 999999,
+                        'next_number' => 1,
+                        'is_active' => true,
+                    ]
+                );
+            }
         }
     }
 }

@@ -251,6 +251,11 @@ class NumberingRangeResource extends Resource
         $baseFilter = fn ($query) => $query
             ->where('company_id', $range->company_id)
             ->where('series', $range->series)
+            ->when(
+                blank($range->work_point_code),
+                fn ($builder) => $builder->whereNull('work_point_code'),
+                fn ($builder) => $builder->where('work_point_code', $range->work_point_code)
+            )
             ->whereBetween('number', [(int) $range->start_number, (int) $range->end_number]);
 
         if ($range->document_type === 'factura') {

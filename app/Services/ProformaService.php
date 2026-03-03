@@ -70,6 +70,7 @@ class ProformaService
             'number'             => $reservation['number'],
             'full_number'        => $reservation['full_number'],
             'numbering_range_id' => $reservation['numbering_range_id'] ?? null,
+            'work_point_code'    => $reservation['work_point_code'] ?? null,
         ]);
 
         GenerateProformaPdf::dispatch($proforma->fresh());
