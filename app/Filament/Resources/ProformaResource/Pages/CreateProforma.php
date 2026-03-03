@@ -15,28 +15,29 @@ class CreateProforma extends CreateRecord
     public ?int $prefillContractId = null;
 
     /**
-     * If a contract_id query parameter is present, lock the pre-filled fields
-     * and fill the form with contract data. Nothing is saved until the user submits.
+     * Override fillForm() so the form is filled exactly once.
+     * Calling form->fill() a second time after parent::mount() does not
+     * reliably populate relationship Repeater items in Filament 3.
      */
-    public function mount(): void
+    protected function fillForm(): void
     {
-        parent::mount();
+        $this->callHook('beforeFill');
 
         $contractId = (int) request()->query('contract_id') ?: null;
-        if (! $contractId) {
-            return;
+        if ($contractId) {
+            $contract = Contract::withoutGlobalScopes()->find($contractId);
+            if ($contract) {
+                $this->prefillContractId = $contract->id;
+                $this->form->fill(
+                    app(ProformaService::class)->prepareDataFromContract($contract)
+                );
+                $this->callHook('afterFill');
+                return;
+            }
         }
 
-        $contract = Contract::withoutGlobalScopes()->find($contractId);
-        if (! $contract) {
-            return;
-        }
-
-        $this->prefillContractId = $contract->id;
-
-        $this->form->fill(
-            app(ProformaService::class)->prepareDataFromContract($contract)
-        );
+        $this->form->fill();
+        $this->callHook('afterFill');
     }
 
     protected function afterCreate(): void
