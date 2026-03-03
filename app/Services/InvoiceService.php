@@ -228,7 +228,8 @@ class InvoiceService
             static fn (BillingCycle $cycle): string => $cycle->value,
             BillingCycle::cases(),
         );
-        $billingCycle = (string) data_get($contract->additional_attributes, 'billing_cycle', '');
+        $billingCycle = $contract->billing_cycle?->value
+            ?? (string) data_get($contract->additional_attributes, 'billing_cycle', '');
         $unit = in_array($billingCycle, $billingCycleValues, true)
             ? $billingCycle
             : BillingCycle::Unic->value;

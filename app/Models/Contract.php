@@ -16,15 +16,16 @@ class Contract extends Model
     protected $fillable = [
         'company_id', 'client_id', 'contract_template_id', 'number',
         'signed_date', 'start_date', 'end_date', 'value', 'currency',
-        'status', 'additional_attributes', 'notes',
+        'billing_cycle', 'status', 'additional_attributes', 'notes',
     ];
 
     protected $casts = [
-        'status'               => ContractStatus::class,
-        'additional_attributes'=> 'array',
-        'signed_date'          => 'date',
-        'start_date'           => 'date',
-        'end_date'             => 'date',
+        'status'                => ContractStatus::class,
+        'billing_cycle'         => \App\Enums\BillingCycle::class,
+        'additional_attributes' => 'array',
+        'signed_date'           => 'date',
+        'start_date'            => 'date',
+        'end_date'              => 'date',
     ];
 
     protected static function booted(): void

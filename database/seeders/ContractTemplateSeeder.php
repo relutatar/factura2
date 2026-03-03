@@ -44,7 +44,7 @@ class ContractTemplateSeeder extends Seeder
 
 <h3>IV. Valoare și modalitate de plată</h3>
 <p><strong>Valoare contract:</strong> {{contract.value}}</p>
-<p><strong>Ciclu facturare:</strong> {{attr.billing_cycle}}</p>
+<p><strong>Ciclu facturare:</strong> {{contract.billing_cycle}}</p>
 <p>Termenele și condițiile de plată se stabilesc prin facturile emise în baza prezentului contract.</p>
 <p><strong>Frecvență servicii:</strong> {{attr.frequency}}</p>
 <p><strong>Locații:</strong> {{attr.locations}}</p>
@@ -80,13 +80,6 @@ class ContractTemplateSeeder extends Seeder
 </table>
 HTML,
                 'custom_fields' => [
-                    [
-                        'key' => 'billing_cycle',
-                        'label' => 'Ciclu facturare',
-                        'options' => ['Lunar', 'Trimestrial', 'Anual', 'Unic'],
-                        'required' => false,
-                        'field_type' => 'select',
-                    ],
                     [
                         'key' => 'frequency',
                         'label' => 'Frecvență servicii',

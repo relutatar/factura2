@@ -90,6 +90,14 @@ class ContractResource extends Resource
                         ->minValue(0.01)
                         ->rule('numeric')
                         ->rule('gt:0'),
+                    Select::make('billing_cycle')
+                        ->label('Ciclu facturare')
+                        ->options(collect(\App\Enums\BillingCycle::cases())
+                            ->mapWithKeys(fn (\App\Enums\BillingCycle $c) => [$c->value => $c->label()])
+                        )
+                        ->default(\App\Enums\BillingCycle::Unic->value)
+                        ->required(),
+
                     Select::make('status')
                         ->label('Status')
                         ->options([

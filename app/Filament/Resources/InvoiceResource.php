@@ -314,7 +314,8 @@ class InvoiceResource extends Resource
                                 ->default(function (Get $get) {
                                     $contractId = $get('../../contract_id');
                                     $contract   = $contractId ? Contract::find($contractId) : null;
-                                    $billingCycle = (string) data_get($contract?->additional_attributes, 'billing_cycle', '');
+                                    $billingCycle = $contract?->billing_cycle?->value
+                                        ?? (string) data_get($contract?->additional_attributes, 'billing_cycle', '');
                                     $allowedValues = array_map(
                                         static fn (BillingCycle $cycle): string => $cycle->value,
                                         BillingCycle::cases(),

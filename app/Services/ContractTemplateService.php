@@ -159,7 +159,7 @@ class ContractTemplateService
             '{{contract.end_date}}'       => e($contract->end_date?->format('d.m.Y') ?? 'nedeterminat'),
             '{{contract.value}}'          => e($this->formatMoney((float) $contract->value)),
             '{{contract.currency}}'       => 'RON',
-            '{{contract.billing_cycle}}'  => e($this->formatAttributeValue($additionalAttributes['billing_cycle'] ?? '')),
+            '{{contract.billing_cycle}}'  => e($contract->billing_cycle?->label() ?? $this->formatAttributeValue($additionalAttributes['billing_cycle'] ?? '')),
             '{{contract.notes}}'          => e($contract->notes ?? ''),
             '{{contract.ddd_frequency}}'  => e($this->formatAttributeValue($additionalAttributes['ddd_frequency'] ?? '')),
             '{{contract.ddd_locations}}'  => e($this->formatAttributeValue($additionalAttributes['ddd_locations'] ?? '')),
@@ -247,7 +247,7 @@ class ContractTemplateService
 
 <h3>IV. Valoare și modalitate de plată</h3>
 <p><strong>Valoare contract:</strong> {{contract.value}}</p>
-<p><strong>Ciclu facturare:</strong> {{attr.billing_cycle}}</p>
+<p><strong>Ciclu facturare:</strong> {{contract.billing_cycle}}</p>
 <p>Termenele și condițiile de plată se stabilesc prin facturile emise în baza prezentului contract.</p>
 <p><strong>Frecvență servicii:</strong> {{attr.frequency}}</p>
 <p><strong>Locații:</strong> {{attr.locations}}</p>
