@@ -143,67 +143,95 @@ class InvoiceResource extends Resource
                         ->default('virament_bancar')
                         ->required(),
 
-                    // ── Termen de plată + Scadență calculată ─────────────────────
-                    Select::make('payment_term_days')
-                        ->label('Termen de plată')
-                        ->options([
-                            7      => '7 zile',
-                            14     => '14 zile',
-                            30     => '30 zile',
-                            'alta' => 'Altă valoare…',
-                        ])
-                        ->default(30)
-                        ->live()
-                        ->dehydrated(false)
-                        ->afterStateHydrated(function ($component, ?Invoice $record) {
-                            if (! $record?->issue_date || ! $record?->due_date) {
-                                $component->state(30);
-                                return;
-                            }
-                            $diff = (int) $record->issue_date->diffInDays($record->due_date);
-                            $component->state(in_array($diff, [7, 14, 30], true) ? $diff : 'alta');
-                        })
-                        ->afterStateUpdated(function ($state, Set $set, Get $get) {
-                            if ($state === 'alta') {
-                                return;
-                            }
-                            $issueDate = $get('issue_date');
-                            $days = (int) ($state ?: 30);
-                            if ($issueDate && $days > 0) {
-                                $set('due_date', Carbon::parse($issueDate)->addDays($days)->format('Y-m-d'));
-                            }
-                        }),
+                    // ── Termen de plată + Scadență (2 coloane; prima se sparge în 2 doar la "Altă valoare") ──────────
+                    Grid::make(2)->schema([
+                        Grid::make(2)->schema([
+                            Select::make('payment_term_days')
+                                ->label('Termen de plată')
+                                ->options([
+                                    7      => '7 zile',
+                                    14     => '14 zile',
+                                    30     => '30 zile',
+                                    'alta' => 'Altă valoare…',
+                                ])
+                                ->native(false)
+                                ->default(30)
+                                ->live()
+                                ->dehydrated(false)
+                                ->afterStateHydrated(function ($component, ?Invoice $record) {
+                                    if (! $record?->issue_date || ! $record?->due_date) {
+                                        $component->state(30);
+                                        return;
+                                    }
+                                    $diff = (int) $record->issue_date->diffInDays($record->due_date);
+                                    $component->state(in_array($diff, [7, 14, 30], true) ? $diff : 'alta');
+                                })
+                                ->afterStateUpdated(function ($state, Set $set, Get $get) {
+                                    $issueDate = $get('issue_date');
 
-                    TextInput::make('custom_term_days')
-                        ->label('Număr zile')
-                        ->numeric()
-                        ->minValue(1)
-                        ->visible(fn (Get $get) => $get('payment_term_days') === 'alta')
-                        ->live()
-                        ->dehydrated(false)
-                        ->afterStateHydrated(function ($component, ?Invoice $record) {
-                            if (! $record?->issue_date || ! $record?->due_date) {
-                                return;
-                            }
-                            $diff = (int) $record->issue_date->diffInDays($record->due_date);
-                            if (! in_array($diff, [7, 14, 30], true)) {
-                                $component->state($diff);
-                            }
-                        })
-                        ->afterStateUpdated(function ($state, Set $set, Get $get) {
-                            $issueDate = $get('issue_date');
-                            $days = (int) ($state ?: 0);
-                            if ($issueDate && $days > 0) {
-                                $set('due_date', Carbon::parse($issueDate)->addDays($days)->format('Y-m-d'));
-                            }
-                        }),
+                                    if ($state === 'alta') {
+                                        $days = (int) ($get('custom_term_days') ?: 30);
+                                        if ($days <= 0) {
+                                            $days = 30;
+                                            $set('custom_term_days', 30);
+                                        }
 
-                    DatePicker::make('due_date')
-                        ->label('Data scadenței')
-                        ->native(false)
-                        ->suffixIcon('heroicon-m-calendar')
-                        ->displayFormat('d.m.Y')
-                        ->default(fn () => today()->addDays(30)),
+                                        if ($issueDate) {
+                                            $set('due_date', Carbon::parse($issueDate)->addDays($days)->format('Y-m-d'));
+                                        }
+
+                                        return;
+                                    }
+
+                                    $days = (int) ($state ?: 30);
+                                    $set('custom_term_days', $days);
+
+                                    if ($issueDate && $days > 0) {
+                                        $set('due_date', Carbon::parse($issueDate)->addDays($days)->format('Y-m-d'));
+                                    }
+                                })
+                                ->columnSpan(fn (Get $get) => $get('payment_term_days') === 'alta' ? 1 : 2),
+
+                            TextInput::make('custom_term_days')
+                                ->label('Alt termen (zile)')
+                                ->type('text')
+                                ->inputMode('numeric')
+                                ->rule('integer')
+                                ->rule('min:1')
+                                ->default(30)
+                                ->visible(fn (Get $get) => $get('payment_term_days') === 'alta')
+                                ->live()
+                                ->dehydrated(false)
+                                ->afterStateHydrated(function ($component, ?Invoice $record) {
+                                    if (! $record?->issue_date || ! $record?->due_date) {
+                                        $component->state(30);
+                                        return;
+                                    }
+
+                                    $diff = (int) $record->issue_date->diffInDays($record->due_date);
+                                    $component->state($diff > 0 ? $diff : 30);
+                                })
+                                ->afterStateUpdated(function ($state, Set $set, Get $get) {
+                                    if ($get('payment_term_days') !== 'alta') {
+                                        return;
+                                    }
+
+                                    $issueDate = $get('issue_date');
+                                    $days = (int) ($state ?: 0);
+                                    if ($issueDate && $days > 0) {
+                                        $set('due_date', Carbon::parse($issueDate)->addDays($days)->format('Y-m-d'));
+                                    }
+                                }),
+                        ])->columnSpan(1),
+
+                        DatePicker::make('due_date')
+                            ->label('Data scadenței')
+                            ->native(false)
+                            ->suffixIcon('heroicon-m-calendar')
+                            ->displayFormat('d.m.Y')
+                            ->default(fn () => today()->addDays(30))
+                            ->columnSpan(1),
+                    ])->columnSpanFull(),
 
                     TextInput::make('payment_reference')
                         ->label('Referință plată')
