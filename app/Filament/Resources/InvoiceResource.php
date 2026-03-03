@@ -60,7 +60,7 @@ class InvoiceResource extends Resource
                         ->searchable()
                         ->preload()
                         ->required()
-                        ->disabled(fn (?Invoice $record) => $record !== null)
+                        ->disabled(fn (?Invoice $record, $livewire) => $record !== null || ($livewire->prefillContractId ?? null) !== null)
                         ->dehydrated(fn (?Invoice $record) => $record === null)
                         ->columnSpanFull(),
 
@@ -71,7 +71,7 @@ class InvoiceResource extends Resource
                         ->preload()
                         ->nullable()
                         ->live()
-                        ->disabled(fn (?Invoice $record) => $record !== null)
+                        ->disabled(fn (?Invoice $record, $livewire) => $record !== null || ($livewire->prefillContractId ?? null) !== null)
                         ->dehydrated(fn (?Invoice $record) => $record === null)
                         ->columnSpanFull(),
 

@@ -15,6 +15,35 @@ use Illuminate\Support\Facades\DB;
 
 class InvoiceService
 {
+    /**
+     * Read the next series/number from the active numbering range WITHOUT reserving it.
+     * Use only for UI preview. The actual number is allocated in reserveNextNumber().
+     */
+    public function peekNextNumber(int $companyId, string $documentType, ?CarbonInterface $issuedAt = null): ?array
+    {
+        $issuedAt = $issuedAt ?? now();
+        $year = (int) $issuedAt->year;
+
+        $range = NumberingRange::withoutGlobalScopes()
+            ->where('company_id', $companyId)
+            ->where('document_type', $documentType)
+            ->where('fiscal_year', $year)
+            ->where('is_active', true)
+            ->first();
+
+        if (! $range || $range->next_number > $range->end_number) {
+            return null;
+        }
+
+        $number = (int) $range->next_number;
+
+        return [
+            'series'      => $range->series,
+            'number'      => $number,
+            'full_number' => $range->series . '-' . str_pad((string) $number, 4, '0', STR_PAD_LEFT),
+        ];
+    }
+
     public function reserveNextNumber(
         int $companyId,
         string $documentType,
@@ -134,6 +163,8 @@ class InvoiceService
             ? $billingCycle
             : BillingCycle::Unic->value;
 
+        $peek = $this->peekNextNumber($contract->company_id, 'factura');
+
         return [
             'client_id'      => $contract->client_id,
             'contract_id'    => $contract->id,
@@ -142,8 +173,13 @@ class InvoiceService
             'due_date'       => now()->addDays(30)->toDateString(),
             'currency'       => 'RON',
             'payment_method' => 'virament_bancar',
+            // series is dehydrated(false) — shown as preview only, real value assigned on save
+            'series'         => $peek['series'] ?? null,
+            // number shown as preview; afterCreate() reserves the real number and overwrites
+            'number'         => $peek['number'] ?? null,
             'lines'          => [
                 [
+                    'line_mode'   => 'serviciu',
                     'product_id'  => null,
                     'description' => "Servicii conform contract nr. {$contract->number} din {$contractDate}",
                     'quantity'    => 1,

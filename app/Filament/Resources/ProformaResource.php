@@ -53,7 +53,7 @@ class ProformaResource extends Resource
                         ->searchable()
                         ->preload()
                         ->required()
-                        ->disabled(fn (?Proforma $record) => $record !== null)
+                        ->disabled(fn (?Proforma $record, $livewire) => $record !== null || ($livewire->prefillContractId ?? null) !== null)
                         ->dehydrated(fn (?Proforma $record) => $record === null),
 
                     Select::make('contract_id')
@@ -63,7 +63,7 @@ class ProformaResource extends Resource
                         ->preload()
                         ->nullable()
                         ->live()
-                        ->disabled(fn (?Proforma $record) => $record !== null)
+                        ->disabled(fn (?Proforma $record, $livewire) => $record !== null || ($livewire->prefillContractId ?? null) !== null)
                         ->dehydrated(fn (?Proforma $record) => $record === null),
 
                     Select::make('status')
