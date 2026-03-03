@@ -119,7 +119,7 @@ class InvoiceResource extends Resource
                                     ? (int) ($get('custom_term_days') ?: 30)
                                     : (int) ($term ?: 30);
                                 if ($state && $days > 0) {
-                                    $set('due_date', Carbon::parse($state)->addDays($days)->format('Y-m-d'));
+                                    $set('due_date', self::addCalendarDays($state, $days));
                                 }
                             }),
 
@@ -157,10 +157,20 @@ class InvoiceResource extends Resource
                                 ->default('30')
                                 ->live()
                                 ->dehydrated(false)
-                                ->afterStateHydrated(function ($component, $state) {
-                                    if (blank($state)) {
+                                ->afterStateHydrated(function ($component, ?Invoice $record) {
+                                    if (! $record?->issue_date || ! $record?->due_date) {
                                         $component->state('30');
+                                        return;
                                     }
+
+                                    $diff = self::calendarDaysDiff($record->issue_date, $record->due_date);
+
+                                    if (in_array($diff, [7, 14, 30], true)) {
+                                        $component->state((string) $diff);
+                                        return;
+                                    }
+
+                                    $component->state('alta');
                                 })
                                 ->afterStateUpdated(function ($state, Set $set, Get $get) {
                                     $issueDate = $get('issue_date');
@@ -173,7 +183,7 @@ class InvoiceResource extends Resource
                                         }
 
                                         if ($issueDate) {
-                                            $set('due_date', Carbon::parse($issueDate)->addDays($days)->format('Y-m-d'));
+                                            $set('due_date', self::addCalendarDays($issueDate, $days));
                                         }
 
                                         return;
@@ -183,7 +193,7 @@ class InvoiceResource extends Resource
                                     $set('custom_term_days', $days);
 
                                     if ($issueDate && $days > 0) {
-                                        $set('due_date', Carbon::parse($issueDate)->addDays($days)->format('Y-m-d'));
+                                        $set('due_date', self::addCalendarDays($issueDate, $days));
                                     }
                                 })
                                 ->columnSpan(fn (Get $get) => $get('payment_term_days') === 'alta' ? 1 : 2),
@@ -215,7 +225,7 @@ class InvoiceResource extends Resource
                                     $issueDate = $get('issue_date');
                                     $days = (int) ($state ?: 0);
                                     if ($issueDate && $days > 0) {
-                                        $set('due_date', Carbon::parse($issueDate)->addDays($days)->format('Y-m-d'));
+                                        $set('due_date', self::addCalendarDays($issueDate, $days));
                                     }
                                 }),
                         ])->columnSpan(2),
@@ -226,36 +236,6 @@ class InvoiceResource extends Resource
                             ->suffixIcon('heroicon-m-calendar')
                             ->displayFormat('d.m.Y')
                             ->default(fn () => today()->addDays(30))
-                            ->afterStateHydrated(function ($state, Get $get, Set $set) {
-                                $issueDate = $get('issue_date');
-                                if (! $issueDate || ! $state) {
-                                    return;
-                                }
-
-                                $diff = self::calendarDaysDiff($issueDate, $state);
-                                if (in_array($diff, [7, 14, 30], true)) {
-                                    $set('payment_term_days', (string) $diff);
-                                    $set('custom_term_days', $diff);
-                                } elseif ($diff > 0) {
-                                    $set('payment_term_days', 'alta');
-                                    $set('custom_term_days', $diff);
-                                }
-                            })
-                            ->afterStateUpdated(function ($state, Get $get, Set $set) {
-                                $issueDate = $get('issue_date');
-                                if (! $issueDate || ! $state) {
-                                    return;
-                                }
-
-                                $diff = self::calendarDaysDiff($issueDate, $state);
-                                if (in_array($diff, [7, 14, 30], true)) {
-                                    $set('payment_term_days', (string) $diff);
-                                    $set('custom_term_days', $diff);
-                                } elseif ($diff > 0) {
-                                    $set('payment_term_days', 'alta');
-                                    $set('custom_term_days', $diff);
-                                }
-                            })
                             ->columnSpan(1),
                     ])->columnSpanFull(),
 
@@ -653,14 +633,57 @@ class InvoiceResource extends Resource
 
     private static function calendarDaysDiff(mixed $issueDate, mixed $dueDate): int
     {
-        if (blank($issueDate) || blank($dueDate)) {
+        $issueDateOnly = self::normalizeDateOnly($issueDate);
+        $dueDateOnly = self::normalizeDateOnly($dueDate);
+
+        if (! $issueDateOnly || ! $dueDateOnly) {
             return 0;
         }
 
-        $issue = Carbon::parse($issueDate, 'UTC')->startOfDay();
-        $due = Carbon::parse($dueDate, 'UTC')->startOfDay();
+        $issue = Carbon::createFromFormat('Y-m-d', $issueDateOnly, 'UTC');
+        $due = Carbon::createFromFormat('Y-m-d', $dueDateOnly, 'UTC');
 
         return (int) $issue->diffInDays($due, false);
+    }
+
+    private static function addCalendarDays(mixed $date, int $days): ?string
+    {
+        $dateOnly = self::normalizeDateOnly($date);
+
+        if (! $dateOnly || $days <= 0) {
+            return null;
+        }
+
+        return Carbon::createFromFormat('Y-m-d', $dateOnly, 'UTC')
+            ->addDays($days)
+            ->toDateString();
+    }
+
+    private static function normalizeDateOnly(mixed $value): ?string
+    {
+        if (blank($value)) {
+            return null;
+        }
+
+        $appTimezone = config('app.timezone', 'UTC');
+
+        if ($value instanceof Carbon) {
+            return $value->copy()->setTimezone($appTimezone)->toDateString();
+        }
+
+        if (is_string($value)) {
+            $value = trim($value);
+
+            if (preg_match('/^(\d{4}-\d{2}-\d{2})$/', $value, $matches)) {
+                return $matches[1];
+            }
+
+            if (preg_match('/^(\d{2})\.(\d{2})\.(\d{4})$/', $value, $matches)) {
+                return sprintf('%s-%s-%s', $matches[3], $matches[2], $matches[1]);
+            }
+        }
+
+        return Carbon::parse($value)->setTimezone($appTimezone)->toDateString();
     }
 
     public static function getPages(): array
