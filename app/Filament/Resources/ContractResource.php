@@ -139,7 +139,20 @@ class ContractResource extends Resource
             ->find($templateId);
 
         $customFields = collect($template?->custom_fields ?? [])
-            ->filter(fn (mixed $field): bool => is_array($field) && filled($field['key'] ?? null))
+            ->filter(function (mixed $field): bool {
+                if (! is_array($field) || ! filled($field['key'] ?? null)) {
+                    return false;
+                }
+
+                $normalizedKey = (string) Str::of((string) $field['key'])
+                    ->trim()
+                    ->replace('-', '_')
+                    ->replace(' ', '_')
+                    ->replaceMatches('/[^a-zA-Z0-9_]/', '')
+                    ->lower();
+
+                return $normalizedKey !== 'billing_cycle';
+            })
             ->values();
 
         if ($customFields->isEmpty()) {
